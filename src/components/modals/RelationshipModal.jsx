@@ -8,9 +8,9 @@ export function RelationshipModal({ treeId, people = [] }) {
   const addToast = useUIStore(s => s.addToast)
   const addRelationship = useAddRelationship(treeId)
 
-  // Default to the currently selected person if any
-  const [personAId, setPersonAId] = useState(initialData?.personId || '')
-  const [personBId, setPersonBId] = useState('')
+  // Default to the currently selected person or the drag-and-drop source/target
+  const [personAId, setPersonAId] = useState(initialData?.defaultSourceId || initialData?.personId || '')
+  const [personBId, setPersonBId] = useState(initialData?.defaultTargetId || '')
   const [type, setType] = useState('parent_child')
   
   const [loading, setLoading] = useState(false)
@@ -48,7 +48,7 @@ export function RelationshipModal({ treeId, people = [] }) {
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label>Person 1</label>
-            <select value={personAId} onChange={e => setPersonAId(e.target.value)} required>
+            <select value={personAId} onChange={e => setPersonAId(e.target.value)} required disabled={!!initialData?.defaultSourceId}>
               <option value="" disabled>Select a person...</option>
               {people.map(p => (
                 <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
@@ -70,7 +70,7 @@ export function RelationshipModal({ treeId, people = [] }) {
 
           <div className="field">
             <label>Person 2</label>
-            <select value={personBId} onChange={e => setPersonBId(e.target.value)} required>
+            <select value={personBId} onChange={e => setPersonBId(e.target.value)} required disabled={!!initialData?.defaultTargetId}>
               <option value="" disabled>Select a person...</option>
               {people.map(p => (
                 <option key={p.id} value={p.id} disabled={p.id === personAId}>

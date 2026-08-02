@@ -2,14 +2,17 @@ import { useState, useEffect, useRef } from 'react'
 import { useUIStore } from '../../store/useUIStore'
 import { useAddPerson, useUpdatePerson, useUploadPhoto } from '../../hooks/usePeople'
 import { Avatar } from '../ui/Avatar'
+import { useAddRelationship } from '../../hooks/useRelationships'
 
 export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
+  const { data: initialData } = useUIStore(s => s.activeModal) || {}
   const closeModal = useUIStore(s => s.closeModal)
   const addToast = useUIStore(s => s.addToast)
 
   const addPerson = useAddPerson(treeId)
   const updatePerson = useUpdatePerson(treeId)
   const uploadPhoto = useUploadPhoto(treeId)
+  const addRelationship = useAddRelationship(treeId)
 
   const personToEdit = people.find(p => p.id === personIdToEdit)
 
@@ -76,6 +79,11 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
         notes: notes.trim() || null
       }
 
+      if (!isEdit && initialData?.position) {
+        payload.canvas_x = initialData.position.x
+        payload.canvas_y = initialData.position.y
+      }
+
       let savedPersonId = null
 
       if (isEdit) {
@@ -90,6 +98,26 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
 
       if (photoFile && savedPersonId) {
         await uploadPhoto.mutateAsync({ personId: savedPersonId, file: photoFile })
+      }
+
+      if (!isEdit && initialData?.pendingConnection && savedPersonId) {
+        const { sourceId, intent } = initialData.pendingConnection
+        let relType = 'parent_child'
+        let personA = sourceId
+        let personB = savedPersonId
+        
+        if (intent === 'parent') {
+          personA = savedPersonId
+          personB = sourceId
+        } else if (intent === 'spouse') {
+          relType = 'spouse'
+        }
+
+        await addRelationship.mutateAsync({
+          person_a_id: personA,
+          person_b_id: personB,
+          type: relType
+        })
       }
 
       closeModal()

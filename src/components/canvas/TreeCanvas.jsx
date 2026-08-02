@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect } from 'react'
 import {
   ReactFlow,
   useNodesState,
@@ -119,10 +119,33 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
     }))
   }, [selectedPersonId, people, relationships, setNodes])
 
+  const openModal = useUIStore(s => s.openModal)
+  const { screenToFlowPosition } = useReactFlow()
+
   // Handle dragging a node and saving when released
   const onNodeDragStop = useCallback((event, node) => {
     savePosition.mutate({ id: node.id, x: node.position.x, y: node.position.y })
   }, [savePosition])
+
+  const onConnect = useCallback((params) => {
+    if (params.source === params.target) return
+    openModal('addRelationship', { defaultSourceId: params.source, defaultTargetId: params.target })
+  }, [openModal])
+
+  const onConnectEnd = useCallback((event, connectionState) => {
+    if (!connectionState.isValid) {
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      let intent = null
+      if (connectionState.fromHandle?.id === 'top') intent = 'parent'
+      if (connectionState.fromHandle?.id === 'bottom') intent = 'child'
+      if (connectionState.fromHandle?.id === 'left' || connectionState.fromHandle?.id === 'right') intent = 'spouse'
+      
+      openModal('addPerson', { 
+        position, 
+        pendingConnection: { sourceId: connectionState.fromNode.id, intent }
+      })
+    }
+  }, [screenToFlowPosition, openModal])
 
   const autoArrange = useCallback(() => {
     if (nodes.length === 0) return
@@ -143,6 +166,8 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
         onEdgesChange={onEdgesChange}
         onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
         fitView
         minZoom={0.1}
