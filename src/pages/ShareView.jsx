@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { ReactFlowProvider } from '@xyflow/react'
 import { TreeCanvas } from '../components/canvas/TreeCanvas'
 import { Avatar } from '../components/ui/Avatar'
+import { PersonSearch } from '../components/ui/PersonSearch'
 import { useUIStore } from '../store/useUIStore'
 
 export default function ShareView() {
@@ -98,28 +99,29 @@ export default function ShareView() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Read-Only Topbar */}
-      <div className="topbar" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <div style={{ fontWeight: 900, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
-          🌲 {tree.name} <span style={{ fontSize: 12, opacity: 0.7, fontWeight: 400 }}>(Read-Only)</span>
+      <ReactFlowProvider>
+        {/* Read-Only Topbar */}
+        <div className="topbar" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+          <div style={{ fontWeight: 900, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+            🌲 {tree.name} <span style={{ fontSize: 12, opacity: 0.7, fontWeight: 400 }}>(Read-Only)</span>
+          </div>
+          <PersonSearch people={people} />
+          <div className="topbar-spacer" />
+          <Link to="/login" className="btn btn-primary btn-sm">
+            Create Your Own Tree
+          </Link>
         </div>
-        <div className="topbar-spacer" />
-        <Link to="/login" className="btn btn-primary btn-sm">
-          Create Your Own Tree
-        </Link>
-      </div>
 
-      {/* Main Shared Canvas */}
-      <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--background)' }}>
-        <ReactFlowProvider>
+        {/* Main Shared Canvas */}
+        <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--background)' }}>
           <TreeCanvas 
             treeId={tree.id} 
             people={people} 
             relationships={relationships} 
             readOnly={true} 
           />
-        </ReactFlowProvider>
-      </div>
+        </div>
+      </ReactFlowProvider>
       
       {/* Read-Only Detail Panel Drawer */}
       <div 

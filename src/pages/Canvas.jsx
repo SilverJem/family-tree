@@ -13,6 +13,7 @@ import { ShareModal } from '../components/modals/ShareModal.jsx'
 import { Avatar } from '../components/ui/Avatar.jsx'
 import { calculateAge } from '../lib/utils'
 import { Link as LinkIcon } from 'iconsax-react'
+import { PersonSearch } from '../components/ui/PersonSearch.jsx'
 
 export default function Canvas() {
   const { id } = useParams()
@@ -130,42 +131,43 @@ export default function Canvas() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Topbar */}
-      <div className="topbar" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <Link to="/" className="btn btn-ghost btn-sm">← Dashboard</Link>
-        <span className="tree-name-input" style={{ fontWeight: 900, fontSize: 18 }}>
-          {tree?.name || 'Untitled Tree'}
-        </span>
-        <div className="topbar-spacer" />
-        <button 
-          className="btn btn-ghost btn-sm"
-          onClick={() => openModal('share')}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          <LinkIcon size={16} /> Export
-        </button>
-        <button 
-          className="btn btn-ghost btn-sm"
-          onClick={() => openModal('addRelationship')}
-          disabled={people.length < 2}
-          title={people.length < 2 ? "Add at least two people to create a relationship" : ""}
-        >
-          + Add Link
-        </button>
-        <button 
-          className="btn btn-primary btn-sm"
-          onClick={() => openModal('addPerson')}
-        >
-          + Add Person
-        </button>
-      </div>
+      <ReactFlowProvider>
+        {/* Topbar */}
+        <div className="topbar" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+          <Link to="/" className="btn btn-ghost btn-sm">← Dashboard</Link>
+          <span className="tree-name-input" style={{ fontWeight: 900, fontSize: 18 }}>
+            {tree?.name || 'Untitled Tree'}
+          </span>
+          <PersonSearch people={people} />
+          <div className="topbar-spacer" />
+          <button 
+            className="btn btn-ghost btn-sm"
+            onClick={() => openModal('share')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <LinkIcon size={16} /> Export
+          </button>
+          <button 
+            className="btn btn-ghost btn-sm"
+            onClick={() => openModal('addRelationship')}
+            disabled={people.length < 2}
+            title={people.length < 2 ? "Add at least two people to create a relationship" : ""}
+          >
+            + Add Link
+          </button>
+          <button 
+            className="btn btn-primary btn-sm"
+            onClick={() => openModal('addPerson')}
+          >
+            + Add Person
+          </button>
+        </div>
 
-      {/* Main Canvas Area */}
-      <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--background)' }}>
-        <ReactFlowProvider>
+        {/* Main Canvas Area */}
+        <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--background)' }}>
           <TreeCanvas treeId={id} people={people} relationships={relationships} />
-        </ReactFlowProvider>
-      </div>
+        </div>
+      </ReactFlowProvider>
       
       {/* Detail Panel */}
       <div 
