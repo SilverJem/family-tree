@@ -23,7 +23,10 @@ export async function createSeedFamily(userId) {
     is_living: isLiving,
     canvas_x: x,
     canvas_y: y,
-    location: 'London, UK'
+    location: 'London, UK',
+    occupation: 'Civil Engineer (Retired)',
+    biography: 'A brief biography about this person. They lived a long and fulfilling life.',
+    clan: 'Harper Clan'
   })
 
   const peopleData = [

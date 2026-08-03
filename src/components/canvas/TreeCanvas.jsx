@@ -22,6 +22,7 @@ import { useUIStore } from '../../store/useUIStore'
 import { getLayoutedElements } from '../../lib/layout'
 import { determineKinship } from '../../lib/kinship'
 import { useHistory } from '../../hooks/useHistory'
+import { TreeFilterBar } from '../ui/TreeFilterBar'
 
 const nodeTypes = {
   person: PersonNode,
@@ -94,15 +95,16 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
 
     // Helper to evaluate filters
     const isPersonMatchingFilters = (p) => {
-      if (filters.role === 'parents_only' && !parentIdsWithChildren.has(p.id)) return false
-      if (filters.role === 'children_only' && parentIdsWithChildren.has(p.id)) return false
-
       const isLiving = p.is_living && !p.death_date
       if (filters.living === 'living' && !isLiving) return false
       if (filters.living === 'deceased' && isLiving) return false
 
       if (filters.gender === 'male' && p.gender !== 'male' && p.gender !== 'M') return false
       if (filters.gender === 'female' && p.gender !== 'female' && p.gender !== 'F') return false
+
+      if (filters.clan && filters.clan !== 'all') {
+        if (p.clan !== filters.clan && p.location !== filters.clan) return false
+      }
 
       return true
     }
@@ -264,8 +266,8 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
           const s2 = initialNodesFinal.find(n => n.id === rel.person_b_id)
           if (s1 && s2) {
             node.position = {
-              x: (s1.position.x + s2.position.x) / 2 + 110 - 4, // 110 is NODE_WIDTH/2
-              y: (s1.position.y + s2.position.y) / 2 + 40 - 4   // 40 is NODE_HEIGHT/2
+              x: (s1.position.x + s2.position.x) / 2 + 76 - 4, // 76 is NODE_WIDTH/2 (152/2)
+              y: (s1.position.y + s2.position.y) / 2 + 98 - 4   // 98 is NODE_HEIGHT/2 (196/2)
             }
           }
         }
@@ -380,9 +382,12 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
         minZoom={0.1}
         maxZoom={1.5}
       >
-        <Background color="#ccc" gap={16} />
+        <Background variant="dots" color="#CBD5E1" gap={28} size={1} />
         <Controls />
         <MiniMap zoomable pannable nodeColor={(n) => '#0891b2'} />
+        <Panel position="top-left" style={{ marginTop: 70, marginLeft: 20 }}>
+          <TreeFilterBar people={people} />
+        </Panel>
         <Panel position="bottom-center" style={{ marginBottom: 20 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: '8px',

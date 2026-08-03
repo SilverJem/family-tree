@@ -35,16 +35,20 @@ export const useUIStore = create((set) => ({
   // role: 'all' | 'parents_only' | 'children_only'
   // living: 'all' | 'living' | 'deceased'
   // gender: 'all' | 'male' | 'female'
+  // generation: 'all' | '1' | '2' | '3' etc.
+  // clan: 'all' | clan name
   filters: {
     role: 'all',
     living: 'all',
-    gender: 'all'
+    gender: 'all',
+    generation: 'all',
+    clan: 'all'
   },
   setFilter: (key, value) => set((s) => ({
     filters: { ...s.filters, [key]: value }
   })),
   resetFilters: () => set({
-    filters: { role: 'all', living: 'all', gender: 'all' },
+    filters: { role: 'all', living: 'all', gender: 'all', generation: 'all', clan: 'all' },
     collapsedParentIds: []
   }),
 

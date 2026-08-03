@@ -1,140 +1,193 @@
+import { useState, useRef, useEffect } from 'react'
 import { useUIStore } from '../../store/useUIStore'
-import { Filter, ArrowUp2, ArrowDown2 } from 'iconsax-react'
+import { Filter } from 'iconsax-react'
 
-export function TreeFilterBar({ people = [], relationships = [] }) {
+export function TreeFilterBar({ people = [] }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const menuRef = useRef(null)
+  
   const filters = useUIStore(s => s.filters)
   const setFilter = useUIStore(s => s.setFilter)
   const resetFilters = useUIStore(s => s.resetFilters)
-  const collapsedParentIds = useUIStore(s => s.collapsedParentIds)
-  const collapseAllParents = useUIStore(s => s.collapseAllParents)
-  const expandAllParents = useUIStore(s => s.expandAllParents)
 
-  // Find all parent IDs in relationships
-  const allParentIds = new Set()
-  relationships.forEach(r => {
-    if (r.type.includes('parent_child')) {
-      allParentIds.add(r.person_a_id)
+  // Extract unique clans/locations
+  const clanLocationOptions = Array.from(
+    new Set(
+      people
+        .flatMap(p => [p.clan, p.location])
+        .filter(Boolean)
+    )
+  )
+
+  // Calculate active filter count
+  let activeCount = 0
+  if (filters.clan && filters.clan !== 'all') activeCount++
+  if (filters.living && filters.living !== 'all') activeCount++
+  if (filters.gender && filters.gender !== 'all') activeCount++
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsOpen(false)
+      }
     }
-  })
-
-  const isAllCollapsed = allParentIds.size > 0 && collapsedParentIds.length >= allParentIds.size
-
-  function handleToggleCollapseAll() {
-    if (isAllCollapsed) {
-      expandAllParents()
-    } else {
-      collapseAllParents(allParentIds)
-    }
-  }
-
-  const hasActiveFilters = filters.role !== 'all' || filters.living !== 'all' || filters.gender !== 'all' || collapsedParentIds.length > 0
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '0 8px' }}>
-      {/* Role Filter */}
-      <select
-        value={filters.role}
-        onChange={e => setFilter('role', e.target.value)}
+    <div ref={menuRef} style={{ position: 'relative', display: 'inline-block' }}>
+      {/* Filter Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
         className="btn btn-ghost btn-sm"
         style={{
-          background: filters.role !== 'all' ? 'var(--accent-faint)' : 'var(--muted)',
+          background: activeCount > 0 ? 'var(--accent-faint)' : '#fff',
           border: '1px solid var(--border)',
           borderRadius: 20,
-          fontSize: 12,
-          padding: '4px 10px',
-          color: filters.role !== 'all' ? 'var(--accent)' : 'var(--foreground)',
-          fontWeight: filters.role !== 'all' ? 700 : 500,
-          outline: 'none',
+          fontSize: 13,
+          padding: '6px 14px',
+          color: activeCount > 0 ? 'var(--accent)' : 'var(--foreground)',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
           cursor: 'pointer'
         }}
       >
-        <option value="all">Role: All</option>
-        <option value="parents_only">👨‍👩‍👧 Parents Only</option>
-        <option value="children_only">👶 Children Only</option>
-      </select>
-
-      {/* Living Filter */}
-      <select
-        value={filters.living}
-        onChange={e => setFilter('living', e.target.value)}
-        className="btn btn-ghost btn-sm"
-        style={{
-          background: filters.living !== 'all' ? 'var(--accent-faint)' : 'var(--muted)',
-          border: '1px solid var(--border)',
-          borderRadius: 20,
-          fontSize: 12,
-          padding: '4px 10px',
-          color: filters.living !== 'all' ? 'var(--accent)' : 'var(--foreground)',
-          fontWeight: filters.living !== 'all' ? 700 : 500,
-          outline: 'none',
-          cursor: 'pointer'
-        }}
-      >
-        <option value="all">Status: All</option>
-        <option value="living">💚 Living</option>
-        <option value="deceased">🕊️ Deceased</option>
-      </select>
-
-      {/* Gender Filter */}
-      <select
-        value={filters.gender}
-        onChange={e => setFilter('gender', e.target.value)}
-        className="btn btn-ghost btn-sm"
-        style={{
-          background: filters.gender !== 'all' ? 'var(--accent-faint)' : 'var(--muted)',
-          border: '1px solid var(--border)',
-          borderRadius: 20,
-          fontSize: 12,
-          padding: '4px 10px',
-          color: filters.gender !== 'all' ? 'var(--accent)' : 'var(--foreground)',
-          fontWeight: filters.gender !== 'all' ? 700 : 500,
-          outline: 'none',
-          cursor: 'pointer'
-        }}
-      >
-        <option value="all">Gender: All</option>
-        <option value="male">👨 Male</option>
-        <option value="female">👩 Female</option>
-      </select>
-
-      {/* Branch Collapse All Toggle */}
-      {allParentIds.size > 0 && (
-        <button
-          onClick={handleToggleCollapseAll}
-          className="btn btn-ghost btn-sm"
-          style={{
-            background: collapsedParentIds.length > 0 ? 'var(--accent-faint)' : 'var(--muted)',
-            border: '1px solid var(--border)',
-            borderRadius: 20,
-            fontSize: 12,
-            padding: '4px 12px',
-            color: collapsedParentIds.length > 0 ? 'var(--accent)' : 'var(--foreground)',
-            fontWeight: 600,
-            display: 'flex',
+        <Filter size={15} color="currentColor" />
+        <span>Filters</span>
+        {activeCount > 0 && (
+          <span style={{
+            background: 'var(--accent)',
+            color: '#fff',
+            borderRadius: '50%',
+            width: 18,
+            height: 18,
+            fontSize: 11,
+            fontWeight: 800,
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: 4
-          }}
-          title={isAllCollapsed ? "Expand all children" : "Collapse all children branches"}
-        >
-          {isAllCollapsed ? (
-            <> <ArrowDown2 size={13} /> Expand All </>
-          ) : (
-            <> <ArrowUp2 size={13} /> Minimize Children </>
-          )}
-        </button>
-      )}
+            justifyContent: 'center',
+            marginLeft: 2
+          }}>
+            {activeCount}
+          </span>
+        )}
+      </button>
 
-      {/* Reset Filters */}
-      {hasActiveFilters && (
-        <button
-          onClick={resetFilters}
-          className="btn btn-ghost btn-sm text-muted"
-          style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12 }}
-          title="Reset all filters"
-        >
-          ✕ Reset
-        </button>
+      {/* Popover Dropdown */}
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: 42,
+          left: 0,
+          background: '#fff',
+          border: '1px solid var(--border)',
+          borderRadius: 16,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+          padding: 16,
+          width: 240,
+          zIndex: 100,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12
+        }}>
+          <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', color: 'var(--muted-foreground)', letterSpacing: '0.04em' }}>
+            Filter Tree Nodes
+          </div>
+
+          {/* Clan / Location Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>Clan or Location</label>
+            <select
+              value={filters.clan || 'all'}
+              onChange={e => setFilter('clan', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                fontSize: 13,
+                outline: 'none',
+                background: '#f8fafc'
+              }}
+            >
+              <option value="all">All Clans / Locations</option>
+              {clanLocationOptions.map(item => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Living Status Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>Living Status</label>
+            <select
+              value={filters.living || 'all'}
+              onChange={e => setFilter('living', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                fontSize: 13,
+                outline: 'none',
+                background: '#f8fafc'
+              }}
+            >
+              <option value="all">Status: All</option>
+              <option value="living">💚 Living Only</option>
+              <option value="deceased">🕊️ Deceased Only</option>
+            </select>
+          </div>
+
+          {/* Gender Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>Gender</label>
+            <select
+              value={filters.gender || 'all'}
+              onChange={e => setFilter('gender', e.target.value)}
+              style={{
+                width: '100%',
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                fontSize: 13,
+                outline: 'none',
+                background: '#f8fafc'
+              }}
+            >
+              <option value="all">Gender: All</option>
+              <option value="male">👨 Male</option>
+              <option value="female">👩 Female</option>
+            </select>
+          </div>
+
+          {/* Action Row */}
+          {activeCount > 0 && (
+            <div style={{ paddingTop: 8, borderTop: '1px solid var(--muted)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={resetFilters}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--danger)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+              >
+                Reset Filters
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
 }
+
+
