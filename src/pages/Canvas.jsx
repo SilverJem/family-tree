@@ -159,7 +159,7 @@ export default function Canvas() {
             overflow: 'visible'
           }}
         >
-          <Link to="/" style={{ color: '#64748B', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>←</Link>
+          <Link to="/dashboard" style={{ color: '#64748B', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>←</Link>
           
           {/* Brand Logo & Editable Tree Name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>

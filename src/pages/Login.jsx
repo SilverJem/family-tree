@@ -20,7 +20,7 @@ export default function Login() {
     try {
       if (tab === 'signin') {
         await signIn({ email, password })
-        navigate('/')
+        navigate('/dashboard')
       } else {
         await signUp({ email, password })
         setRegistered(true)
