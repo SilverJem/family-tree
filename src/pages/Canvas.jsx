@@ -14,6 +14,7 @@ import { Avatar } from '../components/ui/Avatar.jsx'
 import { calculateAge } from '../lib/utils'
 import { Link as LinkIcon } from 'iconsax-react'
 import { PersonSearch } from '../components/ui/PersonSearch.jsx'
+import { TreeFilterBar } from '../components/ui/TreeFilterBar.jsx'
 
 export default function Canvas() {
   const { id } = useParams()
@@ -139,6 +140,7 @@ export default function Canvas() {
             {tree?.name || 'Untitled Tree'}
           </span>
           <PersonSearch people={people} />
+          <TreeFilterBar people={people} relationships={relationships} />
           <div className="topbar-spacer" />
           <button 
             className="btn btn-ghost btn-sm"

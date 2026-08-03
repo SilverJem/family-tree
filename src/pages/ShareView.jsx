@@ -5,6 +5,7 @@ import { ReactFlowProvider } from '@xyflow/react'
 import { TreeCanvas } from '../components/canvas/TreeCanvas'
 import { Avatar } from '../components/ui/Avatar'
 import { PersonSearch } from '../components/ui/PersonSearch'
+import { TreeFilterBar } from '../components/ui/TreeFilterBar'
 import { useUIStore } from '../store/useUIStore'
 
 export default function ShareView() {
@@ -106,6 +107,7 @@ export default function ShareView() {
             🌲 {tree.name} <span style={{ fontSize: 12, opacity: 0.7, fontWeight: 400 }}>(Read-Only)</span>
           </div>
           <PersonSearch people={people} />
+          <TreeFilterBar people={people} relationships={relationships} />
           <div className="topbar-spacer" />
           <Link to="/login" className="btn btn-primary btn-sm">
             Create Your Own Tree

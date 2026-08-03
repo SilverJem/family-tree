@@ -2,13 +2,17 @@ import { memo } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import { Avatar } from '../ui/Avatar'
 import { calculateAge } from '../../lib/utils'
+import { useUIStore } from '../../store/useUIStore'
 
 export const PersonNode = memo(({ data }) => {
   const { person } = data
   const isDeceased = !person.is_living || person.death_date
-
-  // Fallback initials if no photo
-  const initials = (person.first_name?.[0] || '') + (person.last_name?.[0] || '')
+  
+  const collapsedParentIds = useUIStore(s => s.collapsedParentIds)
+  const toggleCollapseParent = useUIStore(s => s.toggleCollapseParent)
+  
+  const childCount = data.childCount || 0
+  const isCollapsed = collapsedParentIds.includes(person.id)
 
   return (
     <div className={`person-node ${isDeceased ? 'deceased' : ''}`}>
@@ -51,6 +55,40 @@ export const PersonNode = memo(({ data }) => {
           )}
         </div>
       </div>
+
+      {/* Branch Collapse/Expand Toggle Badge */}
+      {childCount > 0 && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleCollapseParent(person.id)
+          }}
+          className="nodrag nopan"
+          style={{
+            position: 'absolute',
+            bottom: -10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: isCollapsed ? 'var(--primary, #0ea5e9)' : 'var(--card, #ffffff)',
+            color: isCollapsed ? '#ffffff' : 'var(--foreground)',
+            border: '1.5px solid var(--border)',
+            borderRadius: '12px',
+            fontSize: '10px',
+            fontWeight: 800,
+            padding: '2px 8px',
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            zIndex: 10,
+            whiteSpace: 'nowrap'
+          }}
+          title={isCollapsed ? "Expand Children" : "Minimize Children"}
+        >
+          {isCollapsed ? `➕ ${childCount} hidden` : `➖ ${childCount}`}
+        </button>
+      )}
     </div>
   )
 })

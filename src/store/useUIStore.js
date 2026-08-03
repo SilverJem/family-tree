@@ -3,7 +3,7 @@ import { create } from 'zustand'
 /**
  * useUIStore — client-only UI state.
  * Keeps track of which person is selected, which panels are open,
- * and which modal is active. Does NOT touch the server.
+ * tree filters, branch collapsing, and modal state.
  */
 export const useUIStore = create((set) => ({
   // ---- Panel state ----
@@ -16,11 +16,39 @@ export const useUIStore = create((set) => ({
 
   // ---- Selected person ----
   selectedPersonId: null,
-  setSelectedPerson: (id) =>
-    set({ selectedPersonId: id }),
+  setSelectedPerson: (id) => set({ selectedPersonId: id }),
+
+  // ---- Branch Collapsing ----
+  collapsedParentIds: [],
+  toggleCollapseParent: (id) => set((s) => {
+    const isCollapsed = s.collapsedParentIds.includes(id)
+    return {
+      collapsedParentIds: isCollapsed
+        ? s.collapsedParentIds.filter(pid => pid !== id)
+        : [...s.collapsedParentIds, id]
+    }
+  }),
+  collapseAllParents: (parentIds) => set({ collapsedParentIds: Array.from(parentIds) }),
+  expandAllParents: () => set({ collapsedParentIds: [] }),
+
+  // ---- Filters ----
+  // role: 'all' | 'parents_only' | 'children_only'
+  // living: 'all' | 'living' | 'deceased'
+  // gender: 'all' | 'male' | 'female'
+  filters: {
+    role: 'all',
+    living: 'all',
+    gender: 'all'
+  },
+  setFilter: (key, value) => set((s) => ({
+    filters: { ...s.filters, [key]: value }
+  })),
+  resetFilters: () => set({
+    filters: { role: 'all', living: 'all', gender: 'all' },
+    collapsedParentIds: []
+  }),
 
   // ---- Active modal ----
-  // { name: 'addPerson' | 'editPerson' | 'share' | 'addRelationship', data: {} }
   activeModal: null,
   openModal: (name, data = {}) => set({ activeModal: { name, data } }),
   closeModal: () => set({ activeModal: null }),

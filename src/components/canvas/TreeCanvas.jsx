@@ -41,6 +41,8 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
   const openDetailPanel = useUIStore(s => s.openDetailPanel)
   const setSelectedPerson = useUIStore(s => s.setSelectedPerson)
   const selectedPersonId = useUIStore(s => s.selectedPersonId)
+  const collapsedParentIds = useUIStore(s => s.collapsedParentIds)
+  const filters = useUIStore(s => s.filters)
   
   const { takeSnapshot, undo, redo, canUndo, canRedo, clearHistory } = useHistory()
   const isInitialLoad = useRef(true)
@@ -64,12 +66,60 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
       return
     }
 
-    const initialNodes = people.map(p => ({
-      id: p.id,
-      type: 'person',
-      position: { x: p.canvas_x || 0, y: p.canvas_y || 0 },
-      data: { person: p },
-    }))
+    // Calculate parent-child relationships and child counts
+    const parentToChildren = {}
+    const parentIdsWithChildren = new Set()
+    relationships.forEach(rel => {
+      if (rel.type.includes('parent_child')) {
+        const pId = rel.person_a_id
+        const cId = rel.person_b_id
+        if (!parentToChildren[pId]) parentToChildren[pId] = []
+        parentToChildren[pId].push(cId)
+        parentIdsWithChildren.add(pId)
+      }
+    })
+
+    // Calculate hidden nodes due to branch collapsing
+    const hiddenNodeIds = new Set()
+    const addHiddenDescendants = (pId) => {
+      const children = parentToChildren[pId] || []
+      children.forEach(cId => {
+        if (!hiddenNodeIds.has(cId)) {
+          hiddenNodeIds.add(cId)
+          addHiddenDescendants(cId)
+        }
+      })
+    }
+    collapsedParentIds.forEach(pId => addHiddenDescendants(pId))
+
+    // Helper to evaluate filters
+    const isPersonMatchingFilters = (p) => {
+      if (filters.role === 'parents_only' && !parentIdsWithChildren.has(p.id)) return false
+      if (filters.role === 'children_only' && parentIdsWithChildren.has(p.id)) return false
+
+      const isLiving = p.is_living && !p.death_date
+      if (filters.living === 'living' && !isLiving) return false
+      if (filters.living === 'deceased' && isLiving) return false
+
+      if (filters.gender === 'male' && p.gender !== 'male' && p.gender !== 'M') return false
+      if (filters.gender === 'female' && p.gender !== 'female' && p.gender !== 'F') return false
+
+      return true
+    }
+
+    const initialNodes = people.map(p => {
+      const isHidden = hiddenNodeIds.has(p.id) || !isPersonMatchingFilters(p)
+      return {
+        id: p.id,
+        type: 'person',
+        position: { x: p.canvas_x || 0, y: p.canvas_y || 0 },
+        data: { 
+          person: p,
+          childCount: parentToChildren[p.id]?.length || 0
+        },
+        hidden: isHidden
+      }
+    })
 
     // Keep history clean on fresh loads
     if (isInitialLoad.current) {
@@ -101,11 +151,14 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
     relationships.forEach(rel => {
       if (spouseRels.includes(rel.type)) {
         const unionId = `union-${rel.id}`
+        const p1Hidden = hiddenNodeIds.has(rel.person_a_id)
+        const p2Hidden = hiddenNodeIds.has(rel.person_b_id)
         unionNodes.push({
           id: unionId,
           type: 'union',
           position: { x: 0, y: 0 },
           data: { rel },
+          hidden: p1Hidden || p2Hidden,
           style: { zIndex: -1 }
         })
         spouseEdgesMap.set(`${rel.person_a_id}_${rel.person_b_id}`, unionId)
@@ -131,12 +184,14 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
       if (!rel.type.includes('parent_child')) {
         const st = getEdgeStyle(rel.type)
         const isHorizontal = spouseRels.includes(rel.type) || ['sibling', 'half_sibling'].includes(rel.type)
+        const isEdgeHidden = hiddenNodeIds.has(rel.person_a_id) || hiddenNodeIds.has(rel.person_b_id)
         initialEdges.push({
           id: rel.id,
           source: rel.person_a_id,
           target: rel.person_b_id,
           type: isHorizontal ? 'spouseEdge' : 'smoothstep',
           animated: false,
+          hidden: isEdgeHidden,
           style: { stroke: REL_COLORS[rel.type] || '#475569', strokeWidth: st.w, strokeDasharray: st.dash },
           data: { type: rel.type }
         })
@@ -146,12 +201,14 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
     // 2. Add parent-child edges (condense to union if applicable)
     Object.keys(childToParents).forEach(childId => {
       const parentRels = childToParents[childId]
+      const isChildHidden = hiddenNodeIds.has(childId)
+
       if (parentRels.length === 2) {
         const p1 = parentRels[0].person_a_id
         const p2 = parentRels[1].person_a_id
         const unionId = spouseEdgesMap.get(`${p1}_${p2}`)
         if (unionId) {
-          // They share a marriage union, draw single line from union
+          const isUnionHidden = hiddenNodeIds.has(p1) || hiddenNodeIds.has(p2) || isChildHidden
           initialEdges.push({
             id: `edge-u-${unionId}-c-${childId}`,
             source: unionId,
@@ -159,6 +216,7 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
             sourceHandle: 'bottom',
             targetHandle: 'top',
             type: 'tree',
+            hidden: isUnionHidden,
             style: { stroke: REL_COLORS.parent_child, strokeWidth: 2.5 },
             data: { type: 'parent_child' }
           })
@@ -169,6 +227,7 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
       // Fallback: draw direct lines from each parent
       parentRels.forEach(rel => {
         const st = getEdgeStyle(rel.type)
+        const isEdgeHidden = hiddenNodeIds.has(rel.person_a_id) || isChildHidden
         initialEdges.push({
           id: rel.id,
           source: rel.person_a_id,
@@ -176,6 +235,7 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
           sourceHandle: 'bottom',
           targetHandle: 'top',
           type: 'tree',
+          hidden: isEdgeHidden,
           style: { stroke: REL_COLORS[rel.type] || '#475569', strokeWidth: st.w, strokeDasharray: st.dash },
           data: { type: rel.type }
         })
@@ -214,7 +274,7 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
       setEdges(initialEdges)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [people, relationships, setNodes, setEdges]) // intentionally omitting savePositionsBatch to prevent infinite loops
+  }, [people, relationships, collapsedParentIds, filters, setNodes, setEdges]) // intentionally omitting savePositionsBatch to prevent infinite loops
 
   // Dynamically update kinship badges when selection changes
   useEffect(() => {
