@@ -1,9 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { ReactFlowProvider } from '@xyflow/react'
 import { supabase } from '../lib/supabase'
-import { useTreeById, usePeople, useRelationships } from '../hooks/useTree.js'
+import { useTreeById, usePeople, useRelationships, useUpdateTreeName } from '../hooks/useTree.js'
 import { useDeletePerson } from '../hooks/usePeople.js'
 import { TreeCanvas } from '../components/canvas/TreeCanvas.jsx'
 import { useUIStore } from '../store/useUIStore.js'
@@ -23,6 +23,10 @@ export default function Canvas() {
   const { data: tree, isLoading: treeLoading } = useTreeById(id)
   const { data: people = [], isLoading: peopleLoading } = usePeople(id)
   const { data: relationships = [], isLoading: relsLoading } = useRelationships(id)
+  const updateTreeName = useUpdateTreeName()
+
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [treeNameInput, setTreeNameInput] = useState('')
   
   const deletePerson = useDeletePerson(id)
   const queryClient = useQueryClient()
@@ -108,6 +112,18 @@ export default function Canvas() {
   
   const isLoading = treeLoading || peopleLoading || relsLoading
 
+  async function handleSaveName() {
+    setIsEditingName(false)
+    const trimmed = treeNameInput.trim()
+    if (!trimmed || trimmed === tree?.name) return
+    try {
+      await updateTreeName.mutateAsync({ id: tree.id, name: trimmed })
+      addToast('Tree renamed!', 'success')
+    } catch (err) {
+      addToast('Error renaming tree: ' + err.message, 'error')
+    }
+  }
+
   async function handleDeletePerson() {
     if (!selectedPerson) return
     if (confirm(`Are you sure you want to delete ${selectedPerson.first_name}?`)) {
@@ -144,14 +160,50 @@ export default function Canvas() {
         >
           <Link to="/" style={{ color: '#64748B', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>←</Link>
           
-          {/* Brand Logo */}
+          {/* Brand Logo & Editable Tree Name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#E0F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
               🌳
             </div>
-            <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 15, color: '#0A1628', letterSpacing: '-0.01em' }}>
-              {tree?.name || 'Family Tree Builder'}
-            </span>
+            
+            {isEditingName ? (
+              <input
+                type="text"
+                value={treeNameInput}
+                onChange={(e) => setTreeNameInput(e.target.value)}
+                onBlur={handleSaveName}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveName()
+                  if (e.key === 'Escape') setIsEditingName(false)
+                }}
+                autoFocus
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 15,
+                  color: '#0A1628',
+                  border: '1.5px solid #06C8D5',
+                  borderRadius: 6,
+                  padding: '2px 8px',
+                  outline: 'none',
+                  backgroundColor: '#ffffff'
+                }}
+              />
+            ) : (
+              <div 
+                onClick={() => { setTreeNameInput(tree?.name || ''); setIsEditingName(true); }}
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                  padding: '4px 8px', borderRadius: 6, transition: 'background 0.15s ease'
+                }}
+                title="Click to edit tree name"
+              >
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 15, color: '#0A1628', letterSpacing: '-0.01em' }}>
+                  {tree?.name || 'Family Tree Builder'}
+                </span>
+                <span style={{ fontSize: 12, opacity: 0.6 }}>✏️</span>
+              </div>
+            )}
           </div>
 
           <div style={{ width: 1, height: 20, backgroundColor: '#E2E8F0', flexShrink: 0 }} />
