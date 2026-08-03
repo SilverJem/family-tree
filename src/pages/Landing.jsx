@@ -153,10 +153,10 @@ export default function Landing() {
               transition: 'transform 0.3s ease, boxShadow 0.3s ease'
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 14, backgroundColor: '#E0F9FA', color: '#06C8D5',
+                width: 52, height: 52, borderRadius: 14, backgroundColor: '#E0F9FA',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20
               }}>
-                <Diagram size={28} variant="Bold" />
+                <Diagram size={28} color="#06C8D5" variant="Bold" />
               </div>
               <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#0A1628', marginBottom: 10 }}>
                 Smart Auto-Layout Algorithm
@@ -172,10 +172,10 @@ export default function Landing() {
               transition: 'transform 0.3s ease, boxShadow 0.3s ease'
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 14, backgroundColor: '#FEF3C7', color: '#D97706',
+                width: 52, height: 52, borderRadius: 14, backgroundColor: '#FEF3C7',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20
               }}>
-                <Personalcard size={28} variant="Bold" />
+                <Personalcard size={28} color="#D97706" variant="Bold" />
               </div>
               <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#0A1628', marginBottom: 10 }}>
                 Rich Personal Profiles & Badges
@@ -191,10 +191,10 @@ export default function Landing() {
               transition: 'transform 0.3s ease, boxShadow 0.3s ease'
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 14, backgroundColor: '#ECFDF5', color: '#10B981',
+                width: 52, height: 52, borderRadius: 14, backgroundColor: '#ECFDF5',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20
               }}>
-                <Share size={28} variant="Bold" />
+                <Share size={28} color="#10B981" variant="Bold" />
               </div>
               <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#0A1628', marginBottom: 10 }}>
                 Instant Public Share Links
@@ -210,10 +210,10 @@ export default function Landing() {
               transition: 'transform 0.3s ease, boxShadow 0.3s ease'
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 14, backgroundColor: '#EEF2FF', color: '#6366F1',
+                width: 52, height: 52, borderRadius: 14, backgroundColor: '#EEF2FF',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20
               }}>
-                <ExportCurve size={28} variant="Bold" />
+                <ExportCurve size={28} color="#6366F1" variant="Bold" />
               </div>
               <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#0A1628', marginBottom: 10 }}>
                 GEDCOM & JSON Export/Import
@@ -229,10 +229,10 @@ export default function Landing() {
               transition: 'transform 0.3s ease, boxShadow 0.3s ease'
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 14, backgroundColor: '#FDF2F8', color: '#DB2777',
+                width: 52, height: 52, borderRadius: 14, backgroundColor: '#FDF2F8',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20
               }}>
-                <UserAdd size={28} variant="Bold" />
+                <UserAdd size={28} color="#DB2777" variant="Bold" />
               </div>
               <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#0A1628', marginBottom: 10 }}>
                 Single-Click Relative Linking
@@ -248,10 +248,10 @@ export default function Landing() {
               transition: 'transform 0.3s ease, boxShadow 0.3s ease'
             }}>
               <div style={{
-                width: 52, height: 52, borderRadius: 14, backgroundColor: '#FFF7ED', color: '#EA580C',
+                width: 52, height: 52, borderRadius: 14, backgroundColor: '#FFF7ED',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20
               }}>
-                <SecurityCard size={28} variant="Bold" />
+                <SecurityCard size={28} color="#EA580C" variant="Bold" />
               </div>
               <h3 style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#0A1628', marginBottom: 10 }}>
                 Secure Cloud Storage
