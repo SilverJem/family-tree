@@ -11,8 +11,8 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
   // Configure dagre
   dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 100 })
 
-  // Find spouse clusters
-  const spouseEdges = edges.filter(e => e.data?.type === 'spouse')
+  const spouseTypes = ['spouse', 'partner', 'divorced_spouse', 'ex_partner']
+  const spouseEdges = edges.filter(e => spouseTypes.includes(e.data?.type))
   const clusterMap = new Map() // nodeId -> clusterId
   const clusters = {} // clusterId -> [nodeIds]
 
@@ -64,7 +64,7 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
 
   // Add edges to dagre, ignoring spouse edges
   edges.forEach((edge) => {
-    if (edge.data?.type === 'spouse') return // Skip drawing spouse edges in Dagre
+    if (spouseTypes.includes(edge.data?.type)) return // Skip drawing spouse edges in Dagre
 
     const source = clusterMap.has(edge.source) ? clusterMap.get(edge.source) : edge.source
     const target = clusterMap.has(edge.target) ? clusterMap.get(edge.target) : edge.target
