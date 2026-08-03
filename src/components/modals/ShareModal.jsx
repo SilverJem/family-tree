@@ -98,18 +98,23 @@ export function ShareModal({ treeId }) {
 
   return (
     <div 
-      className="modal-overlay" 
+      className="modal-backdrop" 
       onClick={closeModal}
       style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: 'flex', 
         justifyContent: 'flex-end', 
         alignItems: 'stretch',
-        background: 'rgba(0, 0, 0, 0.4)',
-        zIndex: 50
+        background: 'rgba(10, 22, 40, 0.45)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 500
       }}
     >
       <div 
-        className="detail-panel" 
         onClick={e => e.stopPropagation()} 
         style={{ 
           width: 400, 
@@ -118,9 +123,10 @@ export function ShareModal({ treeId }) {
           position: 'relative',
           display: 'flex', 
           flexDirection: 'column', 
-          background: 'var(--card)',
-          boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.15)',
-          borderLeft: '1px solid var(--border)'
+          background: '#ffffff',
+          boxShadow: '-8px 0 32px rgba(10, 22, 40, 0.15)',
+          borderLeft: '1px solid #E2E8F0',
+          animation: 'slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
       >
         {/* Drawer Header */}
