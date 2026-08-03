@@ -137,9 +137,7 @@ export default function Dashboard() {
       {/* Header */}
       <header className="dash-header">
         <div className="brand">
-          <div style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#E0F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Hierarchy size={22} color="#06C8D5" variant="Bold" />
-          </div>
+          <span style={{ fontSize: 28 }}>🌳</span>
           Family Tree Builder
         </div>
         <div className="flex gap-12" style={{ alignItems: 'center' }}>
@@ -151,7 +149,7 @@ export default function Dashboard() {
       <main className="dash-main">
         {/* Hero */}
         <div className="dash-hero">
-          <h1>Your Family Trees</h1>
+          <h1>Your Family Trees 🌿</h1>
           <p>Build beautiful, interactive family trees. Add people, relationships, photos, and share your history with the people who matter.</p>
           <p>Create a new family tree from scratch or load our demo to see how it works.</p>
           <div className="dash-actions">
@@ -188,9 +186,7 @@ export default function Dashboard() {
           </div>
         ) : trees.length === 0 ? (
           <div className="empty-note">
-            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
-              <Hierarchy size={48} color="#94A3B8" />
-            </div>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🌱</div>
             <p style={{ fontWeight: 700, marginBottom: 8 }}>No trees yet</p>
             <p>Click <strong>New Tree</strong> above to get started.</p>
           </div>
@@ -198,9 +194,7 @@ export default function Dashboard() {
           <div className="tree-grid">
             {trees.map((tree) => (
               <div key={tree.id} className="tree-card" onClick={() => navigate(`/tree/${tree.id}`)}>
-                <div className="tc-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E0F9FA', borderRadius: 12, width: 44, height: 44, marginBottom: 12 }}>
-                  <Hierarchy size={24} color="#06C8D5" variant="Bold" />
-                </div>
+                <div className="tc-icon">🌳</div>
                 <h3>{tree.name}</h3>
                 <div className="tc-meta">
                   <span>Created {formatDate(tree.created_at)}</span>

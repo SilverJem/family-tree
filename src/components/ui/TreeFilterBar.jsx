@@ -10,18 +10,8 @@ export function TreeFilterBar({ people = [] }) {
   const setFilter = useUIStore(s => s.setFilter)
   const resetFilters = useUIStore(s => s.resetFilters)
 
-  // Extract unique clans/locations
-  const clanLocationOptions = Array.from(
-    new Set(
-      people
-        .flatMap(p => [p.clan, p.location])
-        .filter(Boolean)
-    )
-  )
-
   // Calculate active filter count
   let activeCount = 0
-  if (filters.clan && filters.clan !== 'all') activeCount++
   if (filters.living && filters.living !== 'all') activeCount++
   if (filters.gender && filters.gender !== 'all') activeCount++
 
@@ -96,29 +86,6 @@ export function TreeFilterBar({ people = [] }) {
         }}>
           <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', color: 'var(--muted-foreground)', letterSpacing: '0.04em' }}>
             Filter Tree Nodes
-          </div>
-
-          {/* Clan / Location Filter */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>Clan or Location</label>
-            <select
-              value={filters.clan || 'all'}
-              onChange={e => setFilter('clan', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '6px 10px',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                fontSize: 13,
-                outline: 'none',
-                background: '#f8fafc'
-              }}
-            >
-              <option value="all">All Clans / Locations</option>
-              {clanLocationOptions.map(item => (
-                <option key={item} value={item}>{item}</option>
-              ))}
-            </select>
           </div>
 
           {/* Living Status Filter */}

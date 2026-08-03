@@ -140,7 +140,7 @@ export default function Canvas() {
   if (isLoading) {
     return (
       <div className="flex-center" style={{ height: '100vh', flexDirection: 'column', gap: 16 }}>
-        <Tree size={48} color="#06C8D5" className="animate-pulse" />
+        <div style={{ fontSize: 48 }} className="animate-pulse">🌳</div>
         <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#64748B' }}>Loading tree…</p>
       </div>
     )
@@ -162,8 +162,8 @@ export default function Canvas() {
           
           {/* Brand Logo & Editable Tree Name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#E0F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Hierarchy size={18} color="#06C8D5" variant="Bold" />
+            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#E0F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+              🌳
             </div>
             
             {isEditingName ? (
