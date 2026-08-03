@@ -1,10 +1,96 @@
 import dagre from 'dagre'
+import calcTree from 'relatives-tree'
 
 const NODE_WIDTH = 220
 const NODE_HEIGHT = 80
 const SPOUSE_SPACING = 20
 
 export function getLayoutedElements(nodes, edges, direction = 'TB') {
+  // Primary Strategy: relatives-tree
+  try {
+    const personNodes = nodes.filter(n => n.type === 'person')
+    if (personNodes.length > 0) {
+      const relNodes = personNodes.map(n => {
+        const p = n.data.person
+        const id = n.id
+        const gender = (p.gender === 'female' || p.gender === 'F') ? 'female' : 'male'
+
+        const parents = []
+        const children = []
+        const spouses = []
+
+        edges.forEach(e => {
+          const type = e.data?.type || ''
+          if (type.includes('parent_child')) {
+            if (e.target === id) parents.push({ id: e.source, type: 'blood' })
+            if (e.source === id) children.push({ id: e.target, type: 'blood' })
+          } else if (['spouse', 'partner', 'divorced_spouse', 'ex_partner'].includes(type)) {
+            if (e.source === id) spouses.push({ id: e.target, type: 'married' })
+            if (e.target === id) spouses.push({ id: e.source, type: 'married' })
+          }
+        })
+
+        return {
+          id,
+          gender,
+          parents,
+          children,
+          siblings: [],
+          spouses
+        }
+      })
+
+      const rootId = relNodes[0].id
+      const tree = calcTree(relNodes, { rootId })
+
+      if (tree && tree.nodes && tree.nodes.length > 0) {
+        const CELL_W = NODE_WIDTH + SPOUSE_SPACING + 40
+        const CELL_H = NODE_HEIGHT + 120
+
+        const posMap = new Map()
+        tree.nodes.forEach(node => {
+          posMap.set(node.id, {
+            x: node.left * (CELL_W / 2),
+            y: node.top * (CELL_H / 2)
+          })
+        })
+
+        const layoutedNodes = nodes.map(node => {
+          if (node.type === 'union') return node
+          const pos = posMap.get(node.id)
+          if (pos) {
+            return {
+              ...node,
+              position: { x: pos.x, y: pos.y },
+              data: { ...node.data, autoLayouted: true }
+            }
+          }
+          return node
+        })
+
+        // Position Union nodes between spouses
+        layoutedNodes.forEach(node => {
+          if (node.type === 'union') {
+            const rel = node.data.rel
+            const s1 = layoutedNodes.find(n => n.id === rel.person_a_id)
+            const s2 = layoutedNodes.find(n => n.id === rel.person_b_id)
+            if (s1 && s2) {
+              node.position = {
+                x: (s1.position.x + s2.position.x) / 2 + (NODE_WIDTH / 2) - 4,
+                y: s1.position.y + (NODE_HEIGHT / 2) - 4
+              }
+            }
+          }
+        })
+
+        return { nodes: layoutedNodes, edges }
+      }
+    }
+  } catch (err) {
+    console.warn('relatives-tree layout fallback to Dagre:', err)
+  }
+
+  // Fallback Strategy: Dagre graph algorithm
   const dagreGraph = new dagre.graphlib.Graph()
   dagreGraph.setDefaultEdgeLabel(() => ({}))
   dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 120 })
@@ -22,7 +108,6 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
       const c1 = clusterMap.get(s1)
       const c2 = clusterMap.get(s2)
       if (c1 !== c2) {
-        // Merge clusters
         clusters[c1].push(...clusters[c2])
         clusters[c2].forEach(id => clusterMap.set(id, c1))
         delete clusters[c2]
@@ -47,9 +132,8 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
   // Sort cluster members to ensure connected spouses are adjacent
   Object.keys(clusters).forEach(cId => {
     const members = clusters[cId]
-    if (members.length <= 2) return // Already fine
+    if (members.length <= 2) return
     
-    // Build adjacency list for this cluster
     const adj = {}
     members.forEach(m => adj[m] = [])
     
@@ -60,10 +144,8 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
       }
     })
     
-    // Find a start node (degree 1)
     let startNode = members.find(m => adj[m].length === 1) || members[0]
     
-    // Simple BFS/DFS to order them
     const ordered = []
     const visited = new Set()
     
@@ -71,11 +153,9 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
     while (current) {
       ordered.push(current)
       visited.add(current)
-      // Find next unvisited neighbor
       current = adj[current].find(neighbor => !visited.has(neighbor))
     }
     
-    // In case of disconnected components within the same cluster (shouldn't happen, but fallback)
     members.forEach(m => {
       if (!visited.has(m)) ordered.push(m)
     })
@@ -86,7 +166,7 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
   const addedNodesToDagre = new Set()
 
   nodes.forEach((node) => {
-    if (node.type === 'union') return // Skip union nodes in dagre layout
+    if (node.type === 'union') return
 
     if (clusterMap.has(node.id)) {
       const c = clusterMap.get(node.id)
@@ -101,16 +181,14 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
     }
   })
 
-  // Add edges to dagre, ignoring spouse edges
   edges.forEach((edge) => {
-    if (spouseTypes.includes(edge.data?.type)) return // Skip drawing spouse edges in Dagre
+    if (spouseTypes.includes(edge.data?.type)) return
 
     let sourceId = edge.source
     if (sourceId.startsWith('union-')) {
       const unionNode = nodes.find(n => n.id === sourceId)
       if (unionNode) {
         const rel = unionNode.data.rel
-        // Use one of the parents to find the cluster
         sourceId = rel.person_a_id
       }
     }
@@ -123,12 +201,10 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
     }
   })
 
-  // Calculate layout
   dagre.layout(dagreGraph)
 
-  // Map the new positions back to the React Flow nodes
   const layoutedNodes = nodes.map((node) => {
-    if (node.type === 'union') return node // Calculate in second pass
+    if (node.type === 'union') return node
 
     if (clusterMap.has(node.id)) {
       const c = clusterMap.get(node.id)
@@ -160,14 +236,12 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
     }
   })
 
-  // Second pass: position Union nodes exactly between their two spouses
   layoutedNodes.forEach(node => {
     if (node.type === 'union') {
       const rel = node.data.rel
       const s1 = layoutedNodes.find(n => n.id === rel.person_a_id)
       const s2 = layoutedNodes.find(n => n.id === rel.person_b_id)
       if (s1 && s2) {
-        // Union node size is roughly 8x8. We offset slightly to perfectly center it on the spouse connection line
         node.position = {
           x: (s1.position.x + s2.position.x) / 2 + (NODE_WIDTH / 2) - 4,
           y: s1.position.y + (NODE_HEIGHT / 2) - 4
