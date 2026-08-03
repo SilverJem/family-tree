@@ -48,10 +48,11 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
   const { takeSnapshot, undo, redo, canUndo, canRedo, clearHistory } = useHistory()
   const isInitialLoad = useRef(true)
 
-  // Single-Click a node -> Select person (shows relationships on canvas)
+  // Single-Click a node -> Select person & open detail panel
   const onNodeClick = useCallback((event, node) => {
     setSelectedPerson(node.id)
-  }, [setSelectedPerson])
+    openDetailPanel()
+  }, [setSelectedPerson, openDetailPanel])
 
   // Double-Click a node -> Open detail panel
   const onNodeDoubleClick = useCallback((event, node) => {
