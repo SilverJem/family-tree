@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import { ReactFlowProvider } from '@xyflow/react'
 import { supabase } from '../lib/supabase'
 import { useTreeById, usePeople, useRelationships } from '../hooks/useTree.js'
 import { useDeletePerson } from '../hooks/usePeople.js'
@@ -115,7 +116,9 @@ export default function Canvas() {
 
       {/* Main Canvas Area */}
       <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--background)' }}>
-        <TreeCanvas treeId={id} people={people} relationships={relationships} />
+        <ReactFlowProvider>
+          <TreeCanvas treeId={id} people={people} relationships={relationships} />
+        </ReactFlowProvider>
       </div>
       
       {/* Detail Panel */}
