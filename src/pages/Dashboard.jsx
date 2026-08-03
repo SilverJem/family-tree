@@ -6,6 +6,7 @@ import { createSeedFamily } from '../lib/seedData.js'
 import { parseFamilyTreeFile } from '../lib/importer.js'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUIStore } from '../store/useUIStore'
+import { Hierarchy, Edit2, DocumentDownload, FolderCloud, Add, Trash } from 'iconsax-react'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -136,7 +137,9 @@ export default function Dashboard() {
       {/* Header */}
       <header className="dash-header">
         <div className="brand">
-          <span style={{ fontSize: 28 }}>🌳</span>
+          <div style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#E0F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Hierarchy size={22} color="#06C8D5" variant="Bold" />
+          </div>
           Family Tree Builder
         </div>
         <div className="flex gap-12" style={{ alignItems: 'center' }}>
@@ -148,15 +151,16 @@ export default function Dashboard() {
       <main className="dash-main">
         {/* Hero */}
         <div className="dash-hero">
-          <h1>Your Family Trees 🌿</h1>
+          <h1>Your Family Trees</h1>
           <p>Build beautiful, interactive family trees. Add people, relationships, photos, and share your history with the people who matter.</p>
           <p>Create a new family tree from scratch or load our demo to see how it works.</p>
           <div className="dash-actions">
             <button className="btn btn-primary" onClick={() => setShowNewModal(true)}>
-              + New Tree
+              <Add size={16} /> New Tree
             </button>
-            <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-              {isImporting ? 'Importing...' : '📥 Import Tree'}
+            <label className="btn btn-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <DocumentDownload size={16} color="#06C8D5" />
+              {isImporting ? 'Importing...' : 'Import Tree'}
               <input 
                 type="file" 
                 accept=".csv,.ged,.json,.html,.htm" 
@@ -172,8 +176,8 @@ export default function Dashboard() {
         </div>
 
         {/* Tree Grid */}
-        <div className="section-title">
-          <span>🗂️</span> All Trees
+        <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <FolderCloud size={20} color="#06C8D5" /> All Trees
         </div>
 
         {isLoading ? (
@@ -184,7 +188,9 @@ export default function Dashboard() {
           </div>
         ) : trees.length === 0 ? (
           <div className="empty-note">
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🌱</div>
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+              <Hierarchy size={48} color="#94A3B8" />
+            </div>
             <p style={{ fontWeight: 700, marginBottom: 8 }}>No trees yet</p>
             <p>Click <strong>New Tree</strong> above to get started.</p>
           </div>
@@ -192,7 +198,9 @@ export default function Dashboard() {
           <div className="tree-grid">
             {trees.map((tree) => (
               <div key={tree.id} className="tree-card" onClick={() => navigate(`/tree/${tree.id}`)}>
-                <div className="tc-icon">🌳</div>
+                <div className="tc-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E0F9FA', borderRadius: 12, width: 44, height: 44, marginBottom: 12 }}>
+                  <Hierarchy size={24} color="#06C8D5" variant="Bold" />
+                </div>
                 <h3>{tree.name}</h3>
                 <div className="tc-meta">
                   <span>Created {formatDate(tree.created_at)}</span>
@@ -224,7 +232,9 @@ export default function Dashboard() {
       {showNewModal && (
         <div className="modal-backdrop" onClick={() => setShowNewModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>New Family Tree</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Hierarchy size={22} color="#06C8D5" /> New Family Tree
+            </h2>
             <p className="sub">Give your tree a name to get started.</p>
             <form onSubmit={handleCreate}>
               {createError && <div className="modal-error">{createError}</div>}
@@ -256,7 +266,9 @@ export default function Dashboard() {
       {renameModal && (
         <div className="modal-backdrop" onClick={() => setRenameModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Rename Tree ✏️</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Edit2 size={22} color="#06C8D5" /> Rename Tree
+            </h2>
             <p className="sub">Enter a new name for your family tree.</p>
             <form onSubmit={handleRenameTree}>
               <div className="field">
@@ -287,7 +299,9 @@ export default function Dashboard() {
       {pendingImport && (
         <div className="modal-backdrop" onClick={() => setPendingImport(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Import Family Tree 📥</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <DocumentDownload size={22} color="#06C8D5" /> Import Family Tree
+            </h2>
             <p className="sub">
               Found {pendingImport.people.length} people and {pendingImport.relationships.length} relationships in your file.
               Enter a name for this new tree.

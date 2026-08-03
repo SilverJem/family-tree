@@ -12,7 +12,7 @@ import { RelationshipModal } from '../components/modals/RelationshipModal.jsx'
 import { ShareModal } from '../components/modals/ShareModal.jsx'
 import { Avatar } from '../components/ui/Avatar.jsx'
 import { calculateAge } from '../lib/utils'
-import { Link as LinkIcon } from 'iconsax-react'
+import { Link as LinkIcon, Edit2, Hierarchy, Tree, Add, Trash } from 'iconsax-react'
 import { PersonSearch } from '../components/ui/PersonSearch.jsx'
 import { TreeFilterBar } from '../components/ui/TreeFilterBar.jsx'
 
@@ -140,8 +140,8 @@ export default function Canvas() {
   if (isLoading) {
     return (
       <div className="flex-center" style={{ height: '100vh', flexDirection: 'column', gap: 16 }}>
-        <div style={{ fontSize: 48 }} className="animate-pulse">🌳</div>
-        <p>Loading tree…</p>
+        <Tree size={48} color="#06C8D5" className="animate-pulse" />
+        <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#64748B' }}>Loading tree…</p>
       </div>
     )
   }
@@ -162,8 +162,8 @@ export default function Canvas() {
           
           {/* Brand Logo & Editable Tree Name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#E0F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
-              🌳
+            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#E0F9FA', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Hierarchy size={18} color="#06C8D5" variant="Bold" />
             </div>
             
             {isEditingName ? (
@@ -201,7 +201,7 @@ export default function Canvas() {
                 <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 15, color: '#0A1628', letterSpacing: '-0.01em' }}>
                   {tree?.name || 'Family Tree Builder'}
                 </span>
-                <span style={{ fontSize: 12, opacity: 0.6 }}>✏️</span>
+                <Edit2 size={13} color="#94A3B8" />
               </div>
             )}
           </div>
@@ -378,7 +378,7 @@ export default function Canvas() {
                     onClick={() => openModal('editPerson', { personId: selectedPerson.id })}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F0', backgroundColor: 'transparent', cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#475569', textAlign: 'left' }}
                   >
-                    ✏️ Edit Profile / Bio
+                    <Edit2 size={15} color="#475569" /> Edit Profile / Bio
                   </button>
                   <button 
                     className="btn btn-ghost"
@@ -386,7 +386,7 @@ export default function Canvas() {
                     disabled={people.length < 2}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 14px', borderRadius: 10, border: '1px solid #E2E8F0', backgroundColor: 'transparent', cursor: 'pointer', fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#475569', textAlign: 'left' }}
                   >
-                    ➕ Add Family Link
+                    <Add size={15} color="#475569" /> Add Family Link
                   </button>
                 </div>
               </div>
@@ -396,9 +396,10 @@ export default function Canvas() {
                   className="btn btn-block btn-ghost text-danger"
                   onClick={handleDeletePerson}
                   disabled={deletePerson.isPending}
-                  style={{ color: '#EF4444', fontSize: 13, fontFamily: "'Inter', sans-serif" }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#EF4444', fontSize: 13, fontFamily: "'Inter', sans-serif" }}
                 >
-                  {deletePerson.isPending ? 'Deleting...' : '🗑️ Delete Person'}
+                  <Trash size={15} color="#EF4444" />
+                  {deletePerson.isPending ? 'Deleting...' : 'Delete Person'}
                 </button>
               </div>
             </div>
