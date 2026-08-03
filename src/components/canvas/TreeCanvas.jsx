@@ -77,7 +77,7 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
         target: rel.person_b_id,
         sourceHandle: isHorizontal ? 'right' : 'bottom',
         targetHandle: isHorizontal ? 'left' : 'top',
-        type: 'smoothstep',
+        type: 'default', // Bezier curves for dynamic look
         animated: false,
         style: {
           stroke: REL_COLORS[rel.type] || '#475569',
