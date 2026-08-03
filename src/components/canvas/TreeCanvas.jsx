@@ -11,7 +11,7 @@ import {
   useReactFlow
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { ArrowRotateLeft, ArrowRotateRight } from 'iconsax-react'
+import { ArrowRotateLeft, ArrowRotateRight, Add, Minus, Maximize4, Scan } from 'iconsax-react'
 import { PersonNode } from './PersonNode'
 import { UnionNode } from './UnionNode'
 import { TreeEdge } from './TreeEdge'
@@ -228,7 +228,15 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
   }, [selectedPersonId, people, relationships, setNodes])
 
   const openModal = useUIStore(s => s.openModal)
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, zoomIn, zoomOut, fitView } = useReactFlow()
+
+  const handleAutoFocus = useCallback(() => {
+    if (selectedPersonId) {
+      fitView({ nodes: [{ id: selectedPersonId }], duration: 500, maxZoom: 1.2 })
+    } else {
+      fitView({ padding: 0.2, duration: 400 })
+    }
+  }, [selectedPersonId, fitView])
 
   // Capture snapshot BEFORE dragging starts
   const onNodeDragStart = useCallback((event, node) => {
@@ -315,37 +323,83 @@ export function TreeCanvas({ treeId, people = [], relationships = [], readOnly =
         <Background color="#ccc" gap={16} />
         <Controls />
         <MiniMap zoomable pannable nodeColor={(n) => '#0891b2'} />
-        {!readOnly && (
-          <Panel position="bottom-center" style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
+        <Panel position="bottom-center" style={{ marginBottom: 20 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            background: 'var(--card)', padding: '6px 12px', borderRadius: '14px',
+            border: '1px solid var(--border)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            {/* Zoom & View Controls */}
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <button 
-                onClick={handleUndo} 
-                disabled={!canUndo}
-                className="btn btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                title="Undo Layout Action"
+                onClick={() => zoomIn({ duration: 300 })} 
+                className="btn btn-secondary btn-sm"
+                title="Zoom In (+)"
+                style={{ padding: '6px 10px' }}
               >
-                <ArrowRotateLeft size={16} color="currentColor" variant="Linear" /> Undo
+                <Add size={16} color="currentColor" />
               </button>
               <button 
-                onClick={autoArrange} 
-                className="btn btn-primary"
-                style={{ boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+                onClick={() => zoomOut({ duration: 300 })} 
+                className="btn btn-secondary btn-sm"
+                title="Zoom Out (-)"
+                style={{ padding: '6px 10px' }}
               >
-                ✨ Auto Arrange
+                <Minus size={16} color="currentColor" />
               </button>
               <button 
-                onClick={handleRedo} 
-                disabled={!canRedo}
-                className="btn btn-secondary"
-                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-                title="Redo Layout Action"
+                onClick={() => fitView({ padding: 0.2, duration: 400 })} 
+                className="btn btn-secondary btn-sm"
+                title="Fit in Frame"
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13 }}
               >
-                <ArrowRotateRight size={16} color="currentColor" variant="Linear" /> Redo
+                <Maximize4 size={16} color="currentColor" /> Fit Frame
+              </button>
+              <button 
+                onClick={handleAutoFocus} 
+                className="btn btn-secondary btn-sm"
+                title={selectedPersonId ? "Focus on Selected Person" : "Auto Focus Tree"}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 13 }}
+              >
+                <Scan size={16} color="currentColor" /> Auto Focus
               </button>
             </div>
-          </Panel>
-        )}
+
+            {!readOnly && <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 4px' }} />}
+
+            {/* Layout Controls (Edit Mode Only) */}
+            {!readOnly && (
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <button 
+                  onClick={handleUndo} 
+                  disabled={!canUndo}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                  title="Undo Layout Action"
+                >
+                  <ArrowRotateLeft size={16} color="currentColor" /> Undo
+                </button>
+                <button 
+                  onClick={autoArrange} 
+                  className="btn btn-primary btn-sm"
+                  style={{ boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+                >
+                  ✨ Auto Arrange
+                </button>
+                <button 
+                  onClick={handleRedo} 
+                  disabled={!canRedo}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                  title="Redo Layout Action"
+                >
+                  <ArrowRotateRight size={16} color="currentColor" /> Redo
+                </button>
+              </div>
+            )}
+          </div>
+        </Panel>
         <Panel position="bottom-left" style={{ margin: 20, background: 'var(--card)', padding: 16, borderRadius: 12, backdropFilter: 'blur(10px)', border: '1px solid var(--border)', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div style={{ fontWeight: 800, marginBottom: 4, color: 'var(--foreground)' }}>Relationship Legend</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
