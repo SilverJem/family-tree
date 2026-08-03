@@ -283,13 +283,25 @@ export default function Canvas() {
                   <h3 className="profile-name" style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 800, fontSize: 20, color: '#0A1628', margin: '0 0 2px', lineHeight: 1.2 }}>
                     {selectedPerson.first_name} {selectedPerson.last_name}
                   </h3>
+                  {selectedPerson.birth_name && selectedPerson.birth_name !== selectedPerson.last_name && (
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontStyle: 'italic', fontSize: 12, color: '#64748B', margin: '0 0 4px' }}>
+                      (née {selectedPerson.birth_name})
+                    </p>
+                  )}
                   {selectedPerson.occupation && (
-                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#64748B', margin: '0 0 10px' }}>{selectedPerson.occupation}</p>
+                    <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#475569', fontWeight: 600, margin: '0 0 8px' }}>{selectedPerson.occupation}</p>
                   )}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 10, padding: '3px 10px', borderRadius: 999, backgroundColor: '#E0F9FA', color: '#06C8D5' }}>Generation 1</span>
-                    {selectedPerson.location && <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 10, padding: '3px 10px', borderRadius: 999, backgroundColor: '#F1F5F9', color: '#475569' }}>{selectedPerson.location}</span>}
-                    {selectedPerson.clan && <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 10, padding: '3px 10px', borderRadius: 999, backgroundColor: '#0A1628', color: '#06C8D5' }}>{selectedPerson.clan} Clan</span>}
+                    {selectedPerson.gender && selectedPerson.gender !== 'unknown' && (
+                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 10, padding: '3px 10px', borderRadius: 999, backgroundColor: '#E0F9FA', color: '#06C8D5', textTransform: 'capitalize' }}>
+                        {selectedPerson.gender}
+                      </span>
+                    )}
+                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 10, padding: '3px 10px', borderRadius: 999, backgroundColor: selectedPerson.is_living ? '#ECFDF5' : '#FEF2F2', color: selectedPerson.is_living ? '#10B981' : '#EF4444' }}>
+                      {selectedPerson.is_living ? 'Living' : 'Deceased'}
+                    </span>
+                    {selectedPerson.location && <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 10, padding: '3px 10px', borderRadius: 999, backgroundColor: '#F1F5F9', color: '#475569' }}>📍 {selectedPerson.location}</span>}
+                    {selectedPerson.clan && <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 10, padding: '3px 10px', borderRadius: 999, backgroundColor: '#0A1628', color: '#06C8D5' }}>{selectedPerson.clan} Tribe</span>}
                   </div>
                 </div>
               </div>
@@ -303,6 +315,15 @@ export default function Canvas() {
                 </p>
               </div>
 
+              {selectedPerson.notes && (
+                <div style={{ marginBottom: '20px' }}>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 10, color: '#94A3B8', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 8px' }}>Additional Notes</p>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, color: '#475569', lineHeight: 1.65, margin: 0 }}>
+                    {selectedPerson.notes}
+                  </p>
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: '20px' }}>
                 <div style={{ backgroundColor: '#F8FAFC', borderRadius: 10, padding: '8px 12px', border: '1px solid #F1F5F9' }}>
                   <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 2px' }}>Born</p>
@@ -311,7 +332,7 @@ export default function Canvas() {
                   </p>
                 </div>
                 <div style={{ backgroundColor: '#F8FAFC', borderRadius: 10, padding: '8px 12px', border: '1px solid #F1F5F9' }}>
-                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 2px' }}>Clan</p>
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 2px' }}>Tribe</p>
                   <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 13, fontWeight: 500, color: '#0A1628', margin: 0 }}>
                     {selectedPerson.clan || '-'}
                   </p>

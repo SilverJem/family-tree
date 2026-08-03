@@ -3,6 +3,7 @@ import { useUIStore } from '../../store/useUIStore'
 import { useAddPerson, useUpdatePerson, useUploadPhoto } from '../../hooks/usePeople'
 import { Avatar } from '../ui/Avatar'
 import { useAddRelationship } from '../../hooks/useRelationships'
+import { Camera } from 'iconsax-react'
 
 export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
   const { data: initialData } = useUIStore(s => s.activeModal) || {}
@@ -23,7 +24,10 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
   const [isLiving, setIsLiving] = useState(personToEdit ? personToEdit.is_living : true)
   const [birthDate, setBirthDate] = useState(personToEdit?.birth_date || '')
   const [deathDate, setDeathDate] = useState(personToEdit?.death_date || '')
+  const [occupation, setOccupation] = useState(personToEdit?.occupation || '')
   const [location, setLocation] = useState(personToEdit?.location || '')
+  const [clan, setClan] = useState(personToEdit?.clan || '')
+  const [biography, setBiography] = useState(personToEdit?.biography || '')
   const [notes, setNotes] = useState(personToEdit?.notes || '')
   
   const [photoFile, setPhotoFile] = useState(null)
@@ -34,7 +38,6 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
 
   const isEdit = !!personToEdit
 
-  // If edit mode and data changes, reset state (shouldn't happen often if modal is unmounted)
   useEffect(() => {
     if (personToEdit) {
       setFirstName(personToEdit.first_name)
@@ -44,7 +47,10 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
       setIsLiving(personToEdit.is_living)
       setBirthDate(personToEdit.birth_date || '')
       setDeathDate(personToEdit.death_date || '')
+      setOccupation(personToEdit.occupation || '')
       setLocation(personToEdit.location || '')
+      setClan(personToEdit.clan || '')
+      setBiography(personToEdit.biography || '')
       setNotes(personToEdit.notes || '')
       setPhotoPreview(personToEdit.photo_url || null)
     }
@@ -75,7 +81,10 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
         is_living: isLiving,
         birth_date: birthDate || null,
         death_date: (!isLiving && deathDate) ? deathDate : null,
+        occupation: occupation.trim() || null,
         location: location.trim() || null,
+        clan: clan.trim() || null,
+        biography: biography.trim() || null,
         notes: notes.trim() || null
       }
 
@@ -131,7 +140,7 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
 
   return (
     <div className="modal-backdrop" onClick={closeModal}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <h2>{isEdit ? 'Edit Person' : 'Add Person'}</h2>
         
         <form onSubmit={handleSubmit}>
@@ -139,9 +148,9 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <div 
               style={{
-                width: 96, height: 96, borderRadius: '50%', background: 'var(--accent)',
+                width: 96, height: 96, borderRadius: '50%', background: '#06C8D5',
                 margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 32, cursor: 'pointer', overflow: 'hidden', border: '2px solid var(--border)'
+                cursor: 'pointer', overflow: 'hidden', border: '3px solid #E0F9FA'
               }}
               onClick={() => fileInputRef.current?.click()}
             >
@@ -152,7 +161,7 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
                   <Avatar person={{ photo_url: photoPreview }} size={96} showInitials={false} />
                 )
               ) : (
-                <span>📷</span>
+                <Camera size={36} color="#ffffff" variant="Bold" />
               )}
             </div>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => fileInputRef.current?.click()}>
@@ -214,14 +223,28 @@ export function PersonModal({ treeId, personIdToEdit = null, people = [] }) {
 
           <div className="field-group" style={{ display: 'flex', gap: 12 }}>
             <div className="field" style={{ flex: 1 }}>
-              <label>Location (City, Country)</label>
-              <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. London, UK" />
+              <label>Occupation / Title</label>
+              <input type="text" value={occupation} onChange={e => setOccupation(e.target.value)} placeholder="e.g. Physician, Historian" />
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label>Clan / Tribe</label>
+              <input type="text" value={clan} onChange={e => setClan(e.target.value)} placeholder="e.g. Highland MacLeod" />
             </div>
           </div>
 
           <div className="field">
-            <label>Notes & Biography</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}></textarea>
+            <label>Location (City, Country)</label>
+            <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. London, UK" />
+          </div>
+
+          <div className="field">
+            <label>Biography</label>
+            <textarea value={biography} onChange={e => setBiography(e.target.value)} rows={3} placeholder="Write a short life story..."></textarea>
+          </div>
+
+          <div className="field">
+            <label>Additional Notes</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Any extra details or references..."></textarea>
           </div>
 
           <div className="modal-foot">

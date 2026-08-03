@@ -245,6 +245,11 @@ body, .canvas-page {
   backdrop-filter: blur(20px); border-radius: var(--radius-xl);
   box-shadow: var(--shadow-clay-surface);
   padding: 40px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.modal::-webkit-scrollbar {
+  display: none;
 }
 .modal.modal-wide { max-width: 760px; }
 .modal h2 { margin: 0 0 6px; font-size: 24px; }
