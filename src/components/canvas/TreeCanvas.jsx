@@ -33,7 +33,7 @@ const edgeTypes = {
   spouseEdge: SpouseEdge,
 }
 
-export function TreeCanvas({ treeId, people = [], relationships = [] }) {
+export function TreeCanvas({ treeId, people = [], relationships = [], readOnly = false }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const savePosition = useSaveNodePosition(treeId)
@@ -237,9 +237,9 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
 
   // Handle dragging a node and saving when released
   const onNodeDragStop = useCallback((event, node) => {
-    if (node.type === 'union') return
+    if (readOnly || node.type === 'union') return
     savePosition.mutate({ id: node.id, x: node.position.x, y: node.position.y })
-  }, [savePosition])
+  }, [readOnly, savePosition])
 
   const handleUndo = useCallback(() => {
     const previousState = undo(nodes)
@@ -304,6 +304,8 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
+        nodesDraggable={!readOnly}
+        nodesConnectable={!readOnly}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
@@ -313,35 +315,37 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
         <Background color="#ccc" gap={16} />
         <Controls />
         <MiniMap zoomable pannable nodeColor={(n) => '#0891b2'} />
-        <Panel position="bottom-center" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              onClick={handleUndo} 
-              disabled={!canUndo}
-              className="btn btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-              title="Undo Layout Action"
-            >
-              <ArrowRotateLeft size={16} color="currentColor" variant="Linear" /> Undo
-            </button>
-            <button 
-              onClick={autoArrange} 
-              className="btn btn-primary"
-              style={{ boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-            >
-              ✨ Auto Arrange
-            </button>
-            <button 
-              onClick={handleRedo} 
-              disabled={!canRedo}
-              className="btn btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-              title="Redo Layout Action"
-            >
-              <ArrowRotateRight size={16} color="currentColor" variant="Linear" /> Redo
-            </button>
-          </div>
-        </Panel>
+        {!readOnly && (
+          <Panel position="bottom-center" style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={handleUndo} 
+                disabled={!canUndo}
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="Undo Layout Action"
+              >
+                <ArrowRotateLeft size={16} color="currentColor" variant="Linear" /> Undo
+              </button>
+              <button 
+                onClick={autoArrange} 
+                className="btn btn-primary"
+                style={{ boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+              >
+                ✨ Auto Arrange
+              </button>
+              <button 
+                onClick={handleRedo} 
+                disabled={!canRedo}
+                className="btn btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="Redo Layout Action"
+              >
+                <ArrowRotateRight size={16} color="currentColor" variant="Linear" /> Redo
+              </button>
+            </div>
+          </Panel>
+        )}
         <Panel position="bottom-left" style={{ margin: 20, background: 'var(--card)', padding: 16, borderRadius: 12, backdropFilter: 'blur(10px)', border: '1px solid var(--border)', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div style={{ fontWeight: 800, marginBottom: 4, color: 'var(--foreground)' }}>Relationship Legend</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

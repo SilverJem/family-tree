@@ -1,37 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { ReactFlow, Background, Controls, MiniMap, ReactFlowProvider } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
-import { PersonNode } from '../components/canvas/PersonNode'
-import { getLayoutedElements } from '../lib/layout'
-
-const nodeTypes = { person: PersonNode }
-
-const REL_COLORS = {
-  parent_child: '#475569',
-  spouse: '#0891B2',
-  step_parent_child: '#F59E0B',
-  adoptive_parent_child: '#10B981',
-  divorced_spouse: '#CBD5E1',
-  godparent_godchild: '#8B5CF6',
-  partner: '#0284C7',
-  ex_partner: '#94A3B8',
-  sibling: '#059669',
-  half_sibling: '#10B981'
-}
+import { ReactFlowProvider } from '@xyflow/react'
+import { TreeCanvas } from '../components/canvas/TreeCanvas'
+import { Avatar } from '../components/ui/Avatar'
+import { useUIStore } from '../store/useUIStore'
 
 export default function ShareView() {
   const { token } = useParams()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [tree, setTree] = useState(null)
-  
-  // React Flow state
-  const [nodes, setNodes] = useState([])
-  const [edges, setEdges] = useState([])
-  const [selectedPersonId, setSelectedPersonId] = useState(null)
   const [people, setPeople] = useState([])
+  const [relationships, setRelationships] = useState([])
+  
+  const selectedPersonId = useUIStore(s => s.selectedPersonId)
+  const isDetailPanelOpen = useUIStore(s => s.isDetailPanelOpen)
+  const closeDetailPanel = useUIStore(s => s.closeDetailPanel)
 
   useEffect(() => {
     async function fetchSharedTree() {
@@ -57,88 +42,24 @@ export default function ShareView() {
         
         const treeId = shareLink.tree_id
         
-        // 2. Fetch the tree
-        const { data: treeData, error: treeError } = await supabase
-          .from('trees')
-          .select('*')
-          .eq('id', treeId)
-          .single()
+        // 2. Fetch tree, people, relationships concurrently
+        const [
+          { data: treeData, error: treeError },
+          { data: peopleData, error: peopleError },
+          { data: relData, error: relError }
+        ] = await Promise.all([
+          supabase.from('trees').select('*').eq('id', treeId).single(),
+          supabase.from('people').select('*').eq('tree_id', treeId),
+          supabase.from('relationships').select('*').eq('tree_id', treeId)
+        ])
           
         if (treeError) throw treeError
-        setTree(treeData)
-        
-        // 3. Fetch people and relationships
-        const { data: peopleData, error: peopleError } = await supabase
-          .from('people')
-          .select('*')
-          .eq('tree_id', treeId)
-          
         if (peopleError) throw peopleError
-        setPeople(peopleData || [])
-        
-        const { data: relData, error: relError } = await supabase
-          .from('relationships')
-          .select('*')
-          .eq('tree_id', treeId)
-          
         if (relError) throw relError
-        
-        // 4. Transform to React Flow
-        const rfNodes = (peopleData || []).map(p => ({
-          id: p.id,
-          type: 'person',
-          position: { x: p.canvas_x || 0, y: p.canvas_y || 0 },
-          data: { person: p }
-        }))
-        
-        const getEdgeStyle = (type) => {
-          switch (type) {
-            case 'parent_child': return { dash: 'none', w: 2.5 }
-            case 'step_parent_child': return { dash: '7 5', w: 2.5 }
-            case 'adoptive_parent_child': return { dash: '2 4', w: 2.5 }
-            case 'foster_parent_child': return { dash: '7 5', w: 2.5 }
-            case 'spouse':
-            case 'partner': return { dash: 'none', w: 3 }
-            case 'divorced_spouse':
-            case 'ex_partner': return { dash: '5 5', w: 2.5 }
-            case 'godparent_godchild': return { dash: '1 5', w: 2.5 }
-            case 'sibling':
-            case 'half_sibling': return { dash: 'none', w: 2.5 }
-            default: return { dash: 'none', w: 2.5 }
-          }
-        }
 
-        const rfEdges = (relData || []).map(r => {
-          const st = getEdgeStyle(r.type)
-          const isHorizontal = ['spouse', 'partner', 'divorced_spouse', 'ex_partner', 'sibling', 'half_sibling'].includes(r.type)
-          return {
-            id: r.id,
-            source: r.person_a_id,
-            target: r.person_b_id,
-            sourceHandle: isHorizontal ? 'right' : 'bottom',
-            targetHandle: isHorizontal ? 'left' : 'top',
-            type: 'smoothstep',
-            animated: false,
-            style: {
-              stroke: REL_COLORS[r.type] || '#475569',
-              strokeWidth: st.w,
-              strokeDasharray: st.dash
-            },
-            data: { rel: r }
-          }
-        })
-        
-        // Use layout engine if nodes have no positions
-        const needsLayout = rfNodes.some(n => n.position.x === 0 && n.position.y === 0)
-        if (needsLayout && rfNodes.length > 0) {
-          const layouted = getLayoutedElements(rfNodes, rfEdges)
-          setNodes(layouted.nodes)
-          setEdges(layouted.edges)
-        } else {
-          setNodes(rfNodes)
-          setEdges(rfEdges)
-        }
-        
+        setTree(treeData)
+        setPeople(peopleData || [])
+        setRelationships(relData || [])
       } catch (err) {
         console.error('Error loading shared tree:', err)
         setError(err.message)
@@ -151,7 +72,12 @@ export default function ShareView() {
   }, [token])
 
   if (loading) {
-    return <div className="flex-center" style={{ height: '100vh' }}>Loading...</div>
+    return (
+      <div className="flex-center" style={{ height: '100vh', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 48 }} className="animate-pulse">🌲</div>
+        <p>Loading shared tree…</p>
+      </div>
+    )
   }
   
   if (error || !tree) {
@@ -171,69 +97,53 @@ export default function ShareView() {
   const selectedPerson = people.find(p => p.id === selectedPersonId)
 
   return (
-    <div className="layout-container">
-      {/* Topbar (Read Only) */}
-      <header className="topbar">
-        <div className="topbar-left">
-          <div className="brand" style={{ fontSize: 18 }}>🌲 {tree.name} (Shared View)</div>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      {/* Read-Only Topbar */}
+      <div className="topbar" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <div style={{ fontWeight: 900, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+          🌲 {tree.name} <span style={{ fontSize: 12, opacity: 0.7, fontWeight: 400 }}>(Read-Only)</span>
         </div>
-        <div className="topbar-right">
-          <Link to="/" className="btn btn-secondary">Create your own</Link>
-        </div>
-      </header>
+        <div className="topbar-spacer" />
+        <Link to="/login" className="btn btn-primary btn-sm">
+          Create Your Own Tree
+        </Link>
+      </div>
 
-      <main className="main-content">
-        <div className="canvas-container">
-          <ReactFlowProvider>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onNodeClick={(_, node) => setSelectedPersonId(node.id)}
-              fitView
-              nodesDraggable={false}
-              nodesConnectable={false}
-              elementsSelectable={true}
-              minZoom={0.1}
-            >
-              <Background color="var(--border)" gap={20} size={1} />
-              <Controls showInteractive={false} />
-              <MiniMap 
-                nodeColor={n => n.data?.person?.gender === 'female' ? '#FCE7F3' : '#E0F2FE'}
-                maskColor="rgba(255, 255, 255, 0.6)"
-              />
-            </ReactFlow>
-          </ReactFlowProvider>
-        </div>
-
-        {/* Read-Only Detail Panel */}
-        {selectedPersonId && selectedPerson ? (
-          <div className="side-panel detail-panel" style={{ right: 0, borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>
-            <div className="panel-header">
-              <h2>Person Details</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setSelectedPersonId(null)}>Close</button>
-            </div>
-            
-            <div className="profile-header">
+      {/* Main Shared Canvas */}
+      <div style={{ flex: 1, width: '100%', height: '100%', background: 'var(--background)' }}>
+        <ReactFlowProvider>
+          <TreeCanvas 
+            treeId={tree.id} 
+            people={people} 
+            relationships={relationships} 
+            readOnly={true} 
+          />
+        </ReactFlowProvider>
+      </div>
+      
+      {/* Read-Only Detail Panel Drawer */}
+      <div 
+        className="detail-panel" 
+        style={{ 
+          position: 'absolute', right: 0, top: 0, bottom: 0, zIndex: 20,
+          transform: isDetailPanelOpen && selectedPerson ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          boxShadow: '-4px 0 24px rgba(0,0,0,0.1)'
+        }}
+      >
+        {selectedPerson && (
+          <>
+            <div className="profile-hero">
+              <button 
+                className="btn btn-ghost btn-sm" 
+                onClick={closeDetailPanel} 
+                style={{ position: 'absolute', top: 12, left: 12, width: 32, height: 32, padding: 0, borderRadius: '50%' }}
+              >
+                ✕
+              </button>
+              
               <div style={{ margin: '0 auto 16px', display: 'flex', justifyContent: 'center' }}>
-                <div style={{
-                  width: 88, 
-                  height: 88, 
-                  borderRadius: '50%', 
-                  background: 'var(--accent)',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  fontSize: 88 * 0.4, 
-                  overflow: 'hidden',
-                  color: 'var(--text)'
-                }}>
-                  {selectedPerson.photo_url ? (
-                    <img src={selectedPerson.photo_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <span>{((selectedPerson.first_name?.[0] || '') + (selectedPerson.last_name?.[0] || '')).toUpperCase()}</span>
-                  )}
-                </div>
+                <Avatar person={selectedPerson} size={88} />
               </div>
               <h3 className="profile-name">
                 {selectedPerson.first_name} {selectedPerson.last_name}
@@ -247,16 +157,11 @@ export default function ShareView() {
                 {selectedPerson.birth_date ? new Date(selectedPerson.birth_date).getFullYear() : '?'} - 
                 {!selectedPerson.is_living ? (selectedPerson.death_date ? new Date(selectedPerson.death_date).getFullYear() : '?') : 'Present'}
               </p>
-              {selectedPerson.location && (
-                <p className="profile-meta" style={{ marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                  📍 {selectedPerson.location}
-                </p>
-              )}
             </div>
             
-            <div className="profile-body" style={{ padding: 24, flex: 1, overflowY: 'auto' }}>
+            <div className="profile-body" style={{ padding: 24 }}>
               <div style={{ marginBottom: 24, fontSize: 14 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px 12px', marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px 12px' }}>
                   <div style={{ color: 'var(--muted-foreground)' }}>Gender</div>
                   <div style={{ textTransform: 'capitalize' }}>{selectedPerson.gender?.replace('_', ' ') || '-'}</div>
                   
@@ -275,9 +180,9 @@ export default function ShareView() {
                 </div>
               )}
             </div>
-          </div>
-        ) : null}
-      </main>
+          </>
+        )}
+      </div>
     </div>
   )
 }
