@@ -12,6 +12,7 @@ import { RelationshipModal } from '../components/modals/RelationshipModal.jsx'
 import { ShareModal } from '../components/modals/ShareModal.jsx'
 import { Avatar } from '../components/ui/Avatar.jsx'
 import { calculateAge } from '../lib/utils'
+import { Link as LinkIcon } from 'iconsax-react'
 
 export default function Canvas() {
   const { id } = useParams()
@@ -59,6 +60,50 @@ export default function Canvas() {
   
   const selectedPerson = people.find(p => p.id === selectedPersonId)
   
+  // Compute immediate relatives
+  const relatives = { parents: [], children: [], partners: [], siblings: [] }
+  if (selectedPerson) {
+    const parentIds = new Set()
+    
+    // Parents & Children & Partners
+    relationships.forEach(rel => {
+      if (rel.type.includes('parent_child')) {
+        if (rel.person_b_id === selectedPerson.id) {
+          const parent = people.find(p => p.id === rel.person_a_id)
+          if (parent) {
+            relatives.parents.push({ ...parent, relType: rel.type })
+            parentIds.add(parent.id)
+          }
+        } else if (rel.person_a_id === selectedPerson.id) {
+          const child = people.find(p => p.id === rel.person_b_id)
+          if (child) relatives.children.push({ ...child, relType: rel.type })
+        }
+      } else if (['spouse', 'partner', 'divorced_spouse', 'ex_partner'].includes(rel.type)) {
+        if (rel.person_a_id === selectedPerson.id) {
+          const partner = people.find(p => p.id === rel.person_b_id)
+          if (partner) relatives.partners.push({ ...partner, relType: rel.type })
+        } else if (rel.person_b_id === selectedPerson.id) {
+          const partner = people.find(p => p.id === rel.person_a_id)
+          if (partner) relatives.partners.push({ ...partner, relType: rel.type })
+        }
+      }
+    })
+
+    // Siblings (share at least one parent)
+    if (parentIds.size > 0) {
+      const siblingIds = new Set()
+      relationships.forEach(rel => {
+        if (rel.type.includes('parent_child') && parentIds.has(rel.person_a_id) && rel.person_b_id !== selectedPerson.id) {
+          siblingIds.add(rel.person_b_id)
+        }
+      })
+      siblingIds.forEach(id => {
+        const sibling = people.find(p => p.id === id)
+        if (sibling) relatives.siblings.push(sibling)
+      })
+    }
+  }
+  
   const isLoading = treeLoading || peopleLoading || relsLoading
 
   async function handleDeletePerson() {
@@ -95,8 +140,9 @@ export default function Canvas() {
         <button 
           className="btn btn-ghost btn-sm"
           onClick={() => openModal('share')}
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          Share
+          <LinkIcon size={16} /> Export
         </button>
         <button 
           className="btn btn-ghost btn-sm"
@@ -185,6 +231,56 @@ export default function Canvas() {
                   <p style={{ fontSize: 14 }}>{selectedPerson.notes}</p>
                 </div>
               )}
+              
+              <div style={{ marginBottom: 24 }}>
+                <h4 style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: 12, letterSpacing: '0.05em' }}>Family</h4>
+                
+                {/* Relatives Renderer */}
+                {(() => {
+                  const hasRelatives = relatives.parents.length > 0 || relatives.partners.length > 0 || relatives.siblings.length > 0 || relatives.children.length > 0
+                  if (!hasRelatives) return <div style={{ fontSize: 13, color: 'var(--muted-foreground)', fontStyle: 'italic' }}>No immediate family linked yet.</div>
+                  
+                  const renderRelativeGroup = (title, list) => {
+                    if (list.length === 0) return null
+                    return (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 6 }}>{title}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {list.map(rel => (
+                            <div 
+                              key={rel.id}
+                              onClick={() => useUIStore.getState().setSelectedPerson(rel.id)}
+                              style={{ 
+                                display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px', 
+                                background: 'var(--background)', borderRadius: 6, cursor: 'pointer',
+                                border: '1px solid var(--border)', fontSize: 13
+                              }}
+                              className="hover:bg-muted"
+                            >
+                              <Avatar person={rel} size={24} />
+                              <span style={{ fontWeight: 500, flex: 1 }}>{rel.first_name} {rel.last_name}</span>
+                              {rel.relType && rel.relType !== 'parent_child' && rel.relType !== 'spouse' && (
+                                <span style={{ fontSize: 10, color: 'var(--muted-foreground)', textTransform: 'capitalize' }}>
+                                  {rel.relType.replace(/_/g, ' ')}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {renderRelativeGroup('Parents', relatives.parents)}
+                      {renderRelativeGroup('Partners', relatives.partners)}
+                      {renderRelativeGroup('Siblings', relatives.siblings)}
+                      {renderRelativeGroup('Children', relatives.children)}
+                    </div>
+                  )
+                })()}
+              </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <button 

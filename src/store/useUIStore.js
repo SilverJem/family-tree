@@ -17,7 +17,7 @@ export const useUIStore = create((set) => ({
   // ---- Selected person ----
   selectedPersonId: null,
   setSelectedPerson: (id) =>
-    set({ selectedPersonId: id, isDetailPanelOpen: id != null }),
+    set({ selectedPersonId: id }),
 
   // ---- Active modal ----
   // { name: 'addPerson' | 'editPerson' | 'share' | 'addRelationship', data: {} }

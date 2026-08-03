@@ -2,14 +2,12 @@ import dagre from 'dagre'
 
 const NODE_WIDTH = 220
 const NODE_HEIGHT = 80
-const SPOUSE_SPACING = 50
+const SPOUSE_SPACING = 20
 
 export function getLayoutedElements(nodes, edges, direction = 'TB') {
   const dagreGraph = new dagre.graphlib.Graph()
   dagreGraph.setDefaultEdgeLabel(() => ({}))
-  
-  // Configure dagre
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 100 })
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 120 })
 
   const spouseTypes = ['spouse', 'partner', 'divorced_spouse', 'ex_partner']
   const spouseEdges = edges.filter(e => spouseTypes.includes(e.data?.type))
@@ -46,9 +44,50 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
     }
   })
 
+  // Sort cluster members to ensure connected spouses are adjacent
+  Object.keys(clusters).forEach(cId => {
+    const members = clusters[cId]
+    if (members.length <= 2) return // Already fine
+    
+    // Build adjacency list for this cluster
+    const adj = {}
+    members.forEach(m => adj[m] = [])
+    
+    spouseEdges.forEach(edge => {
+      if (members.includes(edge.source) && members.includes(edge.target)) {
+        adj[edge.source].push(edge.target)
+        adj[edge.target].push(edge.source)
+      }
+    })
+    
+    // Find a start node (degree 1)
+    let startNode = members.find(m => adj[m].length === 1) || members[0]
+    
+    // Simple BFS/DFS to order them
+    const ordered = []
+    const visited = new Set()
+    
+    let current = startNode
+    while (current) {
+      ordered.push(current)
+      visited.add(current)
+      // Find next unvisited neighbor
+      current = adj[current].find(neighbor => !visited.has(neighbor))
+    }
+    
+    // In case of disconnected components within the same cluster (shouldn't happen, but fallback)
+    members.forEach(m => {
+      if (!visited.has(m)) ordered.push(m)
+    })
+    
+    clusters[cId] = ordered
+  })
+
   const addedNodesToDagre = new Set()
 
   nodes.forEach((node) => {
+    if (node.type === 'union') return // Skip union nodes in dagre layout
+
     if (clusterMap.has(node.id)) {
       const c = clusterMap.get(node.id)
       if (!addedNodesToDagre.has(c)) {
@@ -66,7 +105,17 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
   edges.forEach((edge) => {
     if (spouseTypes.includes(edge.data?.type)) return // Skip drawing spouse edges in Dagre
 
-    const source = clusterMap.has(edge.source) ? clusterMap.get(edge.source) : edge.source
+    let sourceId = edge.source
+    if (sourceId.startsWith('union-')) {
+      const unionNode = nodes.find(n => n.id === sourceId)
+      if (unionNode) {
+        const rel = unionNode.data.rel
+        // Use one of the parents to find the cluster
+        sourceId = rel.person_a_id
+      }
+    }
+
+    const source = clusterMap.has(sourceId) ? clusterMap.get(sourceId) : sourceId
     const target = clusterMap.has(edge.target) ? clusterMap.get(edge.target) : edge.target
 
     if (source !== target) {
@@ -79,6 +128,8 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
 
   // Map the new positions back to the React Flow nodes
   const layoutedNodes = nodes.map((node) => {
+    if (node.type === 'union') return node // Calculate in second pass
+
     if (clusterMap.has(node.id)) {
       const c = clusterMap.get(node.id)
       const cNode = dagreGraph.node(c)
@@ -105,6 +156,22 @@ export function getLayoutedElements(nodes, edges, direction = 'TB') {
         ...node,
         position: { x, y },
         data: { ...node.data, autoLayouted: true }
+      }
+    }
+  })
+
+  // Second pass: position Union nodes exactly between their two spouses
+  layoutedNodes.forEach(node => {
+    if (node.type === 'union') {
+      const rel = node.data.rel
+      const s1 = layoutedNodes.find(n => n.id === rel.person_a_id)
+      const s2 = layoutedNodes.find(n => n.id === rel.person_b_id)
+      if (s1 && s2) {
+        // Union node size is roughly 8x8. We offset slightly to perfectly center it on the spouse connection line
+        node.position = {
+          x: (s1.position.x + s2.position.x) / 2 + (NODE_WIDTH / 2) - 4,
+          y: s1.position.y + (NODE_HEIGHT / 2) - 4
+        }
       }
     }
   })

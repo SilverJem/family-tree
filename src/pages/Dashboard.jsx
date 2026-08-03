@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.js'
-import { useTrees, useCreateTree, useDeleteTree } from '../hooks/useTree.js'
+import { useTrees, useCreateTree, useDeleteTree, useImportTree } from '../hooks/useTree.js'
 import { createSeedFamily } from '../lib/seedData.js'
+import { parseFamilyTreeFile } from '../lib/importer.js'
 import { useQueryClient } from '@tanstack/react-query'
 import { useUIStore } from '../store/useUIStore'
 
@@ -25,6 +26,8 @@ export default function Dashboard() {
   const [createError, setCreateError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null) // tree id
   const [isCreatingSeed, setIsCreatingSeed] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
+  const importTree = useImportTree()
 
   async function handleCreate(e) {
     e.preventDefault()
@@ -65,6 +68,31 @@ export default function Dashboard() {
     }
   }
 
+  async function handleFileImport(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setIsImporting(true)
+    try {
+      const text = await file.text()
+      const { people, relationships } = await parseFamilyTreeFile(file, text)
+      
+      const treeName = file.name.split('.').slice(0, -1).join('.') || 'Imported Tree'
+      const tree = await createTree.mutateAsync({ name: treeName })
+      
+      await importTree.mutateAsync({ treeId: tree.id, people, relationships })
+      
+      addToast(`Imported ${people.length} people!`, 'success')
+      navigate(`/tree/${tree.id}`)
+    } catch (err) {
+      console.error(err)
+      addToast('Import failed: ' + err.message, 'error')
+    } finally {
+      setIsImporting(false)
+      // reset file input
+      e.target.value = null
+    }
+  }
+
   return (
     <>
       <div className="clay-blobs">
@@ -93,6 +121,16 @@ export default function Dashboard() {
             <button className="btn btn-primary" onClick={() => setShowNewModal(true)}>
               + New Tree
             </button>
+            <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+              {isImporting ? 'Importing...' : '📥 Import Tree'}
+              <input 
+                type="file" 
+                accept=".csv,.ged,.json,.html,.htm" 
+                style={{ display: 'none' }} 
+                onChange={handleFileImport}
+                disabled={isImporting}
+              />
+            </label>
             <button className="btn btn-ghost" onClick={handleSeed} disabled={isCreatingSeed}>
               {isCreatingSeed ? 'Seeding...' : 'Load Sample Tree'}
             </button>

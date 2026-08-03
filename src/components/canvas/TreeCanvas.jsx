@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import {
   ReactFlow,
   useNodesState,
@@ -11,27 +11,47 @@ import {
   useReactFlow
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { ArrowRotateLeft, ArrowRotateRight } from 'iconsax-react'
 import { PersonNode } from './PersonNode'
-import { useSaveNodePosition } from '../../hooks/usePeople'
+import { UnionNode } from './UnionNode'
+import { TreeEdge } from './TreeEdge'
+import { SpouseEdge } from './SpouseEdge'
+import { useSaveNodePosition, useSaveNodePositionsBatch } from '../../hooks/usePeople'
 import { REL_COLORS } from '../../hooks/useRelationships'
 import { useUIStore } from '../../store/useUIStore'
 import { getLayoutedElements } from '../../lib/layout'
 import { determineKinship } from '../../lib/kinship'
+import { useHistory } from '../../hooks/useHistory'
 
 const nodeTypes = {
   person: PersonNode,
+  union: UnionNode,
+}
+
+const edgeTypes = {
+  tree: TreeEdge,
+  spouseEdge: SpouseEdge,
 }
 
 export function TreeCanvas({ treeId, people = [], relationships = [] }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const savePosition = useSaveNodePosition(treeId)
+  const savePositionsBatch = useSaveNodePositionsBatch(treeId)
   const openDetailPanel = useUIStore(s => s.openDetailPanel)
   const setSelectedPerson = useUIStore(s => s.setSelectedPerson)
   const selectedPersonId = useUIStore(s => s.selectedPersonId)
+  
+  const { takeSnapshot, undo, redo, canUndo, canRedo, clearHistory } = useHistory()
+  const isInitialLoad = useRef(true)
 
-  // Click a node -> Open detail panel
+  // Single-Click a node -> Select person (shows relationships on canvas)
   const onNodeClick = useCallback((event, node) => {
+    setSelectedPerson(node.id)
+  }, [setSelectedPerson])
+
+  // Double-Click a node -> Open detail panel
+  const onNodeDoubleClick = useCallback((event, node) => {
     setSelectedPerson(node.id)
     openDetailPanel()
   }, [setSelectedPerson, openDetailPanel])
@@ -51,6 +71,12 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
       data: { person: p },
     }))
 
+    // Keep history clean on fresh loads
+    if (isInitialLoad.current) {
+      clearHistory()
+      isInitialLoad.current = false
+    }
+
     const getEdgeStyle = (type) => {
       switch (type) {
         case 'parent_child': return { dash: 'none', w: 2.5 }
@@ -68,23 +94,92 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
       }
     }
 
-    const initialEdges = relationships.map(rel => {
-      const st = getEdgeStyle(rel.type)
-      const isHorizontal = ['spouse', 'partner', 'divorced_spouse', 'ex_partner', 'sibling', 'half_sibling'].includes(rel.type)
-      return {
-        id: rel.id,
-        source: rel.person_a_id,
-        target: rel.person_b_id,
-        sourceHandle: isHorizontal ? 'right' : 'bottom',
-        targetHandle: isHorizontal ? 'left' : 'top',
-        type: 'default', // Bezier curves for dynamic look
-        animated: false,
-        style: {
-          stroke: REL_COLORS[rel.type] || '#475569',
-          strokeWidth: st.w,
-          strokeDasharray: st.dash
-        },
+    const spouseRels = ['spouse', 'partner', 'divorced_spouse', 'ex_partner']
+    const unionNodes = []
+    const spouseEdgesMap = new Map() // parent1Id_parent2Id -> unionId
+
+    relationships.forEach(rel => {
+      if (spouseRels.includes(rel.type)) {
+        const unionId = `union-${rel.id}`
+        unionNodes.push({
+          id: unionId,
+          type: 'union',
+          position: { x: 0, y: 0 },
+          data: { rel },
+          style: { zIndex: -1 }
+        })
+        spouseEdgesMap.set(`${rel.person_a_id}_${rel.person_b_id}`, unionId)
+        spouseEdgesMap.set(`${rel.person_b_id}_${rel.person_a_id}`, unionId)
       }
+    })
+
+    const initialNodesFinal = [...initialNodes, ...unionNodes]
+
+    const childToParents = {}
+    relationships.forEach(rel => {
+      if (rel.type.includes('parent_child')) {
+        const childId = rel.person_b_id
+        if (!childToParents[childId]) childToParents[childId] = []
+        childToParents[childId].push(rel)
+      }
+    })
+
+    const initialEdges = []
+
+    // 1. Add all non parent-child edges (spouses, siblings, etc.)
+    relationships.forEach(rel => {
+      if (!rel.type.includes('parent_child')) {
+        const st = getEdgeStyle(rel.type)
+        const isHorizontal = spouseRels.includes(rel.type) || ['sibling', 'half_sibling'].includes(rel.type)
+        initialEdges.push({
+          id: rel.id,
+          source: rel.person_a_id,
+          target: rel.person_b_id,
+          type: isHorizontal ? 'spouseEdge' : 'smoothstep',
+          animated: false,
+          style: { stroke: REL_COLORS[rel.type] || '#475569', strokeWidth: st.w, strokeDasharray: st.dash },
+          data: { type: rel.type }
+        })
+      }
+    })
+
+    // 2. Add parent-child edges (condense to union if applicable)
+    Object.keys(childToParents).forEach(childId => {
+      const parentRels = childToParents[childId]
+      if (parentRels.length === 2) {
+        const p1 = parentRels[0].person_a_id
+        const p2 = parentRels[1].person_a_id
+        const unionId = spouseEdgesMap.get(`${p1}_${p2}`)
+        if (unionId) {
+          // They share a marriage union, draw single line from union
+          initialEdges.push({
+            id: `edge-u-${unionId}-c-${childId}`,
+            source: unionId,
+            target: childId,
+            sourceHandle: 'bottom',
+            targetHandle: 'top',
+            type: 'tree',
+            style: { stroke: REL_COLORS.parent_child, strokeWidth: 2.5 },
+            data: { type: 'parent_child' }
+          })
+          return
+        }
+      }
+
+      // Fallback: draw direct lines from each parent
+      parentRels.forEach(rel => {
+        const st = getEdgeStyle(rel.type)
+        initialEdges.push({
+          id: rel.id,
+          source: rel.person_a_id,
+          target: rel.person_b_id,
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
+          type: 'tree',
+          style: { stroke: REL_COLORS[rel.type] || '#475569', strokeWidth: st.w, strokeDasharray: st.dash },
+          data: { type: rel.type }
+        })
+      })
     })
 
     // If any node is missing position (0,0), auto-layout
@@ -92,21 +187,34 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
     
     if (needsLayout && initialNodes.length > 0) {
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-        initialNodes,
+        initialNodesFinal,
         initialEdges
       )
       setNodes(layoutedNodes)
       setEdges(layoutedEdges)
-      // Save all auto-layouted positions to Supabase so we don't recalculate next load
-      layoutedNodes.forEach(node => {
-        savePosition.mutate({ id: node.id, x: node.position.x, y: node.position.y })
-      })
+      // Save all auto-layouted positions to Supabase in a batch so we don't recalculate next load
+      const nodesToSave = layoutedNodes.filter(n => n.type !== 'union')
+      savePositionsBatch.mutate(nodesToSave.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })))
     } else {
-      setNodes(initialNodes)
+      // Dynamically calculate union node positions if loaded from DB
+      initialNodesFinal.forEach(node => {
+        if (node.type === 'union') {
+          const rel = node.data.rel
+          const s1 = initialNodesFinal.find(n => n.id === rel.person_a_id)
+          const s2 = initialNodesFinal.find(n => n.id === rel.person_b_id)
+          if (s1 && s2) {
+            node.position = {
+              x: (s1.position.x + s2.position.x) / 2 + 110 - 4, // 110 is NODE_WIDTH/2
+              y: (s1.position.y + s2.position.y) / 2 + 40 - 4   // 40 is NODE_HEIGHT/2
+            }
+          }
+        }
+      })
+      setNodes(initialNodesFinal)
       setEdges(initialEdges)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [people, relationships, setNodes, setEdges])
+  }, [people, relationships, setNodes, setEdges]) // intentionally omitting savePositionsBatch to prevent infinite loops
 
   // Dynamically update kinship badges when selection changes
   useEffect(() => {
@@ -122,10 +230,46 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
   const openModal = useUIStore(s => s.openModal)
   const { screenToFlowPosition } = useReactFlow()
 
+  // Capture snapshot BEFORE dragging starts
+  const onNodeDragStart = useCallback((event, node) => {
+    takeSnapshot(nodes)
+  }, [nodes, takeSnapshot])
+
   // Handle dragging a node and saving when released
   const onNodeDragStop = useCallback((event, node) => {
+    if (node.type === 'union') return
     savePosition.mutate({ id: node.id, x: node.position.x, y: node.position.y })
   }, [savePosition])
+
+  const handleUndo = useCallback(() => {
+    const previousState = undo(nodes)
+    if (previousState) {
+      setNodes(previousState)
+      // Save reverted positions to DB
+      const nodesToSave = previousState.filter(n => n.type !== 'union')
+      savePositionsBatch.mutate(nodesToSave.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })))
+    }
+  }, [nodes, undo, setNodes, savePositionsBatch])
+
+  const handleRedo = useCallback(() => {
+    const nextState = redo(nodes)
+    if (nextState) {
+      setNodes(nextState)
+      // Save redone positions to DB
+      const nodesToSave = nextState.filter(n => n.type !== 'union')
+      savePositionsBatch.mutate(nodesToSave.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })))
+    }
+  }, [nodes, redo, setNodes, savePositionsBatch])
+
+  const autoArrange = useCallback(() => {
+    if (nodes.length === 0) return
+    takeSnapshot(nodes)
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges)
+    setNodes(layoutedNodes)
+    setEdges(layoutedEdges)
+    const nodesToSave = layoutedNodes.filter(n => n.type !== 'union')
+    savePositionsBatch.mutate(nodesToSave.map(n => ({ id: n.id, x: n.position.x, y: n.position.y })))
+  }, [nodes, edges, setNodes, setEdges, savePositionsBatch, takeSnapshot])
 
   const onConnect = useCallback((params) => {
     if (params.source === params.target) return
@@ -147,16 +291,6 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
     }
   }, [screenToFlowPosition, openModal])
 
-  const autoArrange = useCallback(() => {
-    if (nodes.length === 0) return
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges)
-    setNodes(layoutedNodes)
-    setEdges(layoutedEdges)
-    layoutedNodes.forEach(node => {
-      savePosition.mutate({ id: node.id, x: node.position.x, y: node.position.y })
-    })
-  }, [nodes, edges, setNodes, setEdges, savePosition])
-
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
@@ -164,11 +298,14 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeDragStop={onNodeDragStop}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         minZoom={0.1}
         maxZoom={1.5}
@@ -177,9 +314,33 @@ export function TreeCanvas({ treeId, people = [], relationships = [] }) {
         <Controls />
         <MiniMap zoomable pannable nodeColor={(n) => '#0891b2'} />
         <Panel position="bottom-center" style={{ marginBottom: 20 }}>
-          <button className="btn btn-primary btn-sm" onClick={autoArrange} style={{ boxShadow: 'var(--shadow-clay-card)', borderRadius: 20, padding: '12px 24px', fontSize: 16 }}>
-            ✨ Auto Arrange
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={handleUndo} 
+              disabled={!canUndo}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              title="Undo Layout Action"
+            >
+              <ArrowRotateLeft size={16} color="currentColor" variant="Linear" /> Undo
+            </button>
+            <button 
+              onClick={autoArrange} 
+              className="btn btn-primary"
+              style={{ boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+            >
+              ✨ Auto Arrange
+            </button>
+            <button 
+              onClick={handleRedo} 
+              disabled={!canRedo}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              title="Redo Layout Action"
+            >
+              <ArrowRotateRight size={16} color="currentColor" variant="Linear" /> Redo
+            </button>
+          </div>
         </Panel>
         <Panel position="bottom-left" style={{ margin: 20, background: 'var(--card)', padding: 16, borderRadius: 12, backdropFilter: 'blur(10px)', border: '1px solid var(--border)', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <div style={{ fontWeight: 800, marginBottom: 4, color: 'var(--foreground)' }}>Relationship Legend</div>

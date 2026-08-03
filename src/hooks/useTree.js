@@ -117,3 +117,27 @@ export function useDeleteTree() {
     },
   })
 }
+
+// ---- Import a full tree (Bulk insert) ----
+export function useImportTree() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ treeId, people, relationships }) => {
+      // Set tree_id for all
+      const peopleToInsert = people.map(p => ({ ...p, tree_id: treeId }))
+      const relsToInsert = relationships.map(r => ({ ...r, tree_id: treeId }))
+      
+      if (peopleToInsert.length > 0) {
+        const { error: pErr } = await supabase.from('people').insert(peopleToInsert)
+        if (pErr) throw pErr
+      }
+      if (relsToInsert.length > 0) {
+        const { error: rErr } = await supabase.from('relationships').insert(relsToInsert)
+        if (rErr) throw rErr
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trees'] })
+    },
+  })
+}

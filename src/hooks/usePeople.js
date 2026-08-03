@@ -83,6 +83,28 @@ export function useSaveNodePosition(treeId) {
   })
 }
 
+// ---- Save canvas positions for multiple nodes (auto-layout) ----
+export function useSaveNodePositionsBatch(treeId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (nodesArray) => {
+      // Create an upsert payload. Since we only want to update positions, 
+      // this is tricky with Supabase standard API without passing all fields.
+      // Instead, we can execute multiple updates in parallel, but handle it cleanly here.
+      const promises = nodesArray.map(node => 
+        supabase
+          .from('people')
+          .update({ canvas_x: node.x, canvas_y: node.y })
+          .eq('id', node.id)
+      )
+      await Promise.all(promises)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['people', treeId] })
+    },
+  })
+}
+
 // ---- Upload a photo for a person ----
 export function useUploadPhoto(treeId) {
   const queryClient = useQueryClient()
