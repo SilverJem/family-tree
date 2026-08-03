@@ -63,28 +63,29 @@ export function PersonSearch({ people = [] }) {
       {/* Dropdown Results */}
       {isOpen && filtered.length > 0 && (
         <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6,
-          background: 'var(--card)', border: '1px solid var(--border)',
-          borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-          overflow: 'hidden', zIndex: 100, minWidth: 260
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+          backgroundColor: '#ffffff', border: '1px solid #E2E8F0',
+          borderRadius: 14, boxShadow: '0 12px 32px rgba(10,22,40,0.16)',
+          overflow: 'hidden', zIndex: 250, minWidth: 260,
+          padding: '4px 0'
         }}>
           {filtered.map(person => (
             <div 
               key={person.id}
               onClick={() => handleSelect(person)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                cursor: 'pointer', borderBottom: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                cursor: 'pointer', borderBottom: '1px solid #F1F5F9',
                 transition: 'background 0.15s ease'
               }}
-              className="hover:bg-muted"
+              className="hover:bg-slate-50"
             >
-              <Avatar person={person} size={28} />
+              <Avatar person={person} size={32} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700, color: '#0A1628', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {person.first_name} {person.last_name}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                <div style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#64748B' }}>
                   {person.birth_date ? new Date(person.birth_date).getFullYear() : '?'} - 
                   {!person.is_living ? (person.death_date ? new Date(person.death_date).getFullYear() : '?') : 'Present'}
                 </div>

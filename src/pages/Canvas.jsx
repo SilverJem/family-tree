@@ -155,7 +155,8 @@ export default function Canvas() {
           style={{ 
             position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40, height: 56, 
             backgroundColor: '#ffffff', borderBottom: '1px solid #E2E8F0', 
-            display: 'flex', alignItems: 'center', gap: 16, padding: '0 24px' 
+            display: 'flex', alignItems: 'center', gap: 16, padding: '0 24px',
+            overflow: 'visible'
           }}
         >
           <Link to="/" style={{ color: '#64748B', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>←</Link>

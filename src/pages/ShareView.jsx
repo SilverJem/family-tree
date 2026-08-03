@@ -148,7 +148,8 @@ export default function ShareView() {
           style={{ 
             position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40, height: 56, 
             backgroundColor: '#ffffff', borderBottom: '1px solid #E2E8F0', 
-            display: 'flex', alignItems: 'center', gap: 16, padding: '0 24px' 
+            display: 'flex', alignItems: 'center', gap: 16, padding: '0 24px',
+            overflow: 'visible'
           }}
         >
           {/* Brand Logo & Tree Title */}

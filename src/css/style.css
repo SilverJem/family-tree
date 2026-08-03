@@ -269,7 +269,7 @@ body, .canvas-page {
   display: flex; align-items: center; gap: 12px; padding: 0 20px; height: 60px;
   background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
   border-bottom: var(--border-w) solid var(--foreground); z-index: 60; flex: 0 0 auto;
-  max-width: 100vw; box-sizing: border-box; overflow-x: hidden;
+  max-width: 100vw; box-sizing: border-box; overflow: visible;
 }
 .topbar-spacer { flex: 1; }
 .tree-name-input {
